@@ -302,7 +302,7 @@ class IndirizzoServiceTest {
         logger.info(">>>Esecuzione TC_M_08_7: Validazione comune troppo corto");
         ResidenzaEntity input = ResidenzaEntity.builder()
                 .viaPiazza("Via Sarti")
-                .civico("67-68")
+                .civico("67")
                 .comune("P")
                 .cap("67489")
                 .provincia("Napoli")
@@ -336,7 +336,7 @@ class IndirizzoServiceTest {
             String lungoComune="A".repeat(41);
             ResidenzaEntity input= ResidenzaEntity.builder()
                     .viaPiazza("Via Sarti")
-                    .civico("67-68")
+                    .civico("67")
                     .comune(lungoComune)
                     .cap("67489")
                     .provincia("Napoli")
@@ -346,7 +346,7 @@ class IndirizzoServiceTest {
             ValidationException ex=assertThrows(ValidationException.class,()->
                     service.creaNucleoFamiliare("CF123", input, false, null)
             );
-            assertEquals("La creazione del nucleo familiare non viene effettuata datp che il campo \"Comune\" è troppo lungo",
+            assertEquals("La creazione del nucleo familiare non viene effettuata dato che il campo \"Comune\" è troppo lungo",
                     ex.getMessage());
 
             //VERIFY
@@ -371,7 +371,7 @@ class IndirizzoServiceTest {
         logger.info("Esecuzione TC_M_08_9: Validazione con caratteri non validi");
         ResidenzaEntity input= ResidenzaEntity.builder()
                 .viaPiazza("Via Sarti")
-                .civico("67-68")
+                .civico("67")
                 .comune("Pomp3i")
                 .cap("67489")
                 .provincia("Napoli")
