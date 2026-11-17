@@ -153,7 +153,7 @@ public class Validator {
 
 
     public static void creaZoneSicure(List<ZonaSicura> zone) throws IllegalArgumentException {
-        if (zone == null || zone.isEmpty()) throw new IllegalArgumentException("Lista vuota");
+        if (zone == null || zone.isEmpty()) throw new IllegalArgumentException("La creazione della zona sicura non viene effettuata dato che per il campo \"ListaZoneSicure\" non è stata definita nessuna coordinata.");
 
         for (ZonaSicura z : zone) {
             if (z.getRaggio() < 50) {
@@ -170,6 +170,12 @@ public class Validator {
             throw new IllegalArgumentException("La creazione della zona di pericolo non viene effettuata dato che il campo “ZonaPericolo” è composto da un numero di punti troppo basso.");
         }
         checkConnessione(punti);
+
+        // Il poligono è chiuso: a parte il punto di chiusura, nessun punto deve ripetersi
+        Set<Punto> puntiDistinti = new HashSet<>(punti.subList(0, punti.size() - 1));
+        if (puntiDistinti.size() != punti.size() - 1) {
+            throw new IllegalArgumentException("La creazione della zona di pericolo non viene effettuata dato che il campo “ZonaPericolo” contiene punti ripetuti.");
+        }
     }
 
     public static void checkConnessione(List<Punto> punti) throws IllegalArgumentException {

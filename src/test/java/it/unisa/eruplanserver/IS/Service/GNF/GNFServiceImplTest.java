@@ -41,6 +41,9 @@ public class GNFServiceImplTest {
     @Mock
     private HttpSession session;
 
+    @Mock
+    private GNFServiceImpl gnfServiceMock;
+
     @InjectMocks
     private GNFControl controller;
 
@@ -116,6 +119,7 @@ public class GNFServiceImplTest {
         String cfInvitato = "GRT36TGHH53"; // length != 16
 
         when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
         when(session.getAttribute("codiceFiscale")).thenReturn(cfAdmin);
 
         ResponseEntity<String> response = controller.invitaUtente(cfInvitato, request);
@@ -125,7 +129,7 @@ public class GNFServiceImplTest {
                 response.getBody());
 
         // service must NOT be invoked
-        verifyNoInteractions(gnfService);
+        verifyNoInteractions(gnfServiceMock);
     }
 
     /* ===========================
@@ -139,6 +143,7 @@ public class GNFServiceImplTest {
         String cfInvitato = "GRT36T$%GHH5334G"; // 16 chars but invalid chars
 
         when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
         when(session.getAttribute("codiceFiscale")).thenReturn(cfAdmin);
 
         ResponseEntity<String> response = controller.invitaUtente(cfInvitato, request);
@@ -148,7 +153,7 @@ public class GNFServiceImplTest {
                 response.getBody());
 
         // service must NOT be invoked
-        verifyNoInteractions(gnfService);
+        verifyNoInteractions(gnfServiceMock);
     }
 
     /* ===========================
@@ -162,11 +167,12 @@ public class GNFServiceImplTest {
         String cfInvitato = "GRT36T56GHH5334G"; // 16 chars valid pattern-wise
 
         when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
         when(session.getAttribute("codiceFiscale")).thenReturn(cfAdmin);
 
         // Simulate service throwing the "not found" exception with the TD-specific message
         String expectedServiceMessage = "L'invito di un utente nel proprio nucleo familiare non viene effettuato dato che il campo \"CodiceFiscale\" non ha nessuna corrispondenza con un utente sul DB.";
-        doThrow(new Exception(expectedServiceMessage)).when(gnfService).invitaUtente(cfAdmin, cfInvitato);
+        doThrow(new Exception(expectedServiceMessage)).when(gnfServiceMock).invitaUtente(cfAdmin, cfInvitato);
 
         ResponseEntity<String> response = controller.invitaUtente(cfInvitato, request);
 
@@ -174,7 +180,7 @@ public class GNFServiceImplTest {
         assertEquals(expectedServiceMessage, response.getBody());
 
         // verify service invoked exactly once
-        verify(gnfService, times(1)).invitaUtente(cfAdmin, cfInvitato);
+        verify(gnfServiceMock, times(1)).invitaUtente(cfAdmin, cfInvitato);
     }
 
     /* ===========================
@@ -188,17 +194,18 @@ public class GNFServiceImplTest {
         String cfInvitato = "HTL34DEF7HFHJ77G"; // valid 16 chars
 
         when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
         when(session.getAttribute("codiceFiscale")).thenReturn(cfAdmin);
 
         // Service does not throw -> success path
-        doNothing().when(gnfService).invitaUtente(cfAdmin, cfInvitato);
+        doNothing().when(gnfServiceMock).invitaUtente(cfAdmin, cfInvitato);
 
         ResponseEntity<String> response = controller.invitaUtente(cfInvitato, request);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("Invito inviato con successo.", response.getBody());
 
-        verify(gnfService, times(1)).invitaUtente(cfAdmin, cfInvitato);
+        verify(gnfServiceMock, times(1)).invitaUtente(cfAdmin, cfInvitato);
     }
 
     @Test

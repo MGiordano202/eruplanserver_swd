@@ -222,23 +222,23 @@ public class GNFServiceImpl implements GNFService {
         //validazione per via
         via=via.trim();
         if(!via.matches("^[a-zA-Z0-9\\s]+$")) {
-            throw new ValidationException("La creazione del nucleo familiare non viene effettuata dato che il campo \"Via/Piazza\"contiene caratteri non validi");
+            throw new ValidationException("La creazione del nucleo familiare non viene effettuata dato che il campo \"Via/Piazza\" contiene caratteri non validi");
         }
 
         // Validazione civico / comune / cap di base
         if (residenza.getCivico() == null || residenza.getCivico().trim().isEmpty()) {
-            throw new Exception("il campo civico è obbligatorio.");
+            throw new ValidationException("La creazione del nucleo familiare non viene effettuata dato che il campo \"Civico\" è troppo corto");
         }
         String civico=residenza.getCivico();
         civico=civico.trim();
         if(civico.length()<1){
-            throw new ValidationException("La creazione del nucleo familiare non viene effettuata dato che il campo \"Civico\"è troppo corto");
+            throw new ValidationException("La creazione del nucleo familiare non viene effettuata dato che il campo \"Civico\" è troppo corto");
         }
         if(civico.length()>6) {
             throw new ValidationException("La creazione del nucleo familiare non viene effettuata dato che il campo \"Civico\" è troppo lungo");
         }
         if(!civico.matches("^[0-9a-zA-Z/\\s]+$")){
-            throw new ValidationException("La creazione del nucleo familiare non viene effettuata dato che il campo \"Civico\"contiene caratteri non validi");
+            throw new ValidationException("La creazione del nucleo familiare non viene effettuata dato che il campo \"Civico\" contiene caratteri non validi");
         }
         if (residenza.getComune() == null || residenza.getComune().trim().isEmpty()) {
             throw new Exception("il campo comune è obbligatorio.");
