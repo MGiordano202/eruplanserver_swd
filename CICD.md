@@ -28,3 +28,16 @@ The workflow contains one job, `test`, which runs on a GitHub-hosted runner with
 - **Automated testing.** The test suite runs automatically on every push and pull request to `main`, without depending on developers remembering to run it.
 - **Early detection of faults.** Because the workflow also runs on pull requests, a change that breaks compilation or a test is detected before it is merged into `main`. The result is shown in the pull request, next to the merge button.
 - **Regression prevention.** Since all tests are executed on every change, a modification that breaks previously working behaviour is reported immediately.
+
+# Docker Build Workflow
+
+The workflow `.github/workflows/docker-build.yml` extends the pipeline. When `CI` succeeds on `main`, it builds the Docker image (see [Docker.md](Docker.md)) for `linux/amd64` and `linux/arm64` and pushes it to Docker Hub as `<DOCKER_USERNAME>/eruplanserver`.
+
+## Setup
+
+1. Create a Docker Hub account and a repository named `eruplanserver`.
+2. In Docker Hub, create a **personal access token** with *Read & Write* scope (Account settings → Personal access tokens).
+3. In GitHub, add two repository secrets (Settings → Secrets and variables → Actions):
+   - `DOCKER_USERNAME`: the Docker Hub username;
+   - `DOCKER_PASSWORD`: the access token, not the account password.
+4. Push to `main`. Then follow the `CI` run, and the `Docker Build` run that it triggers, in the **Actions** tab, and check the new tags on Docker Hub.

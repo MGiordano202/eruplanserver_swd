@@ -3,7 +3,9 @@
 ############################
 # Stage 1 - build
 ############################
-FROM maven:3.9.9-eclipse-temurin-21 AS build
+# Java bytecode is platform independent: the build stage always runs natively
+# on the builder's platform, even when producing the arm64 image (no slow emulation)
+FROM --platform=$BUILDPLATFORM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
 # Copy the pom first so the dependency layer is reused when only the sources change
