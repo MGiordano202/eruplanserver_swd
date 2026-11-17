@@ -36,3 +36,7 @@ pom.xml
 .gitignore
 pom.xml
 pom.xml
+
+### Docker secrets (never commit) ###
+secrets/*
+!secrets/README.md

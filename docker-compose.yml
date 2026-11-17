@@ -1,0 +1,74 @@
+name: eruplan
+
+services:
+  db:
+    image: mysql:8.4.3
+    restart: on-failure:5
+    environment:
+      MYSQL_DATABASE: eruplan
+      MYSQL_USER: eruplan
+      # Passwords are read from Docker secrets, never written here
+      MYSQL_PASSWORD_FILE: /run/secrets/db_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+    secrets:
+      - db_password
+      - db_root_password
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  app:
+    build:
+      context: .
+    image: eruplanserver:1.0.0
+    restart: on-failure:5
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      LOCAL_DATASOURCE_URL: jdbc:mysql://db:3306/eruplan
+      LOCAL_DATASOURCE_ROOT: eruplan
+      # Every file in /run/secrets becomes a Spring property named after the file
+      # (LOCAL_DATASOURCE_PASSWORD, FIREBASE_CREDENTIALS)
+      SPRING_CONFIG_IMPORT: "optional:configtree:/run/secrets/"
+    secrets:
+      - source: db_password
+        target: LOCAL_DATASOURCE_PASSWORD
+      - source: firebase_credentials
+        target: FIREBASE_CREDENTIALS
+    ports:
+      - "8080:8080"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+volumes:
+  db-data:
+
+networks:
+  backend:
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  db_root_password:
+    file: ./secrets/db_root_password.txt
+  firebase_credentials:
+    file: ./secrets/firebase_credentials.json

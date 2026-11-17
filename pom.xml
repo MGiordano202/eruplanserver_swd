@@ -121,7 +121,8 @@
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy</artifactId>
             <version>1.14.18</version>
-            <scope>test</scope>
+            <!-- no test scope: Hibernate needs byte-buddy at runtime -->
+
         </dependency>
         <dependency>
             <groupId>net.bytebuddy</groupId>
