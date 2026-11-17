@@ -93,3 +93,6 @@ The project is configured for deployment on **Azure Web Apps** via GitHub Action
 ## 🔗 Related resources
 - [Eruplan Web Client](https://github.com/T-R-M-V-spin-off/eruplanwebclient) - The official web frontend.
 - [Eruplan Mobile Client](https://github.com/T-R-M-V-spin-off/eruplanmobileclient) - The official mobile app.
+
+## 🔁 CI/CD
+The CI/CD pipeline is documented in [CICD.md](CICD.md).
