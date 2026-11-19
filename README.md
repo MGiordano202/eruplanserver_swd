@@ -68,14 +68,16 @@ The server is a Java application managed by Maven.
     mvn spring-boot:run
 
 ### API Endpoints Structure
-The application defines a global prefix for all endpoints.
-* **Base URL:** `http://localhost:8080/utenti/`
+Each module exposes its endpoints under its own path, directly on the server root.
+* **Base URL:** `http://localhost:8080/`
 
 **Key Routes:**
-* **Mobile Users:** `/utenti/gestoreUtentiMobile/login`, `/utenti/gestoreUtentiMobile/registra`
-* **Web Operators:** `/utenti/gestoreUtentiWeb/login`
-* **Family Management:** `/utenti/gestoreNucleo/membri`, `/utenti/gestoreNucleo/invita`
-* **Plans:** `/utenti/gestorePiani/genera`
+* **Mobile Users:** `/gestoreUtentiMobile/login`, `/gestoreUtentiMobile/registra`
+* **Web Operators:** `/gestoreUtentiWeb/login`
+* **Family Management:** `/gestoreNucleo/membri`, `/gestoreNucleo/invita`
+* **Plans:** `/gestorePiani/genera`
+* **History:** `/gestoreStorico/eruzioni`, `/gestoreStorico/piani/{idPiano}`
+* **Health check:** `/utenti/` (returns a greeting) and `/actuator/health`
 
 ## ☁️ Deployment
 The project is configured for deployment on **Azure Web Apps** via GitHub Actions workflow. The configuration file is located at `.github/workflows/main_eruplanserver.yml`.
@@ -93,6 +95,9 @@ The project is configured for deployment on **Azure Web Apps** via GitHub Action
 ## 🔗 Related resources
 - [Eruplan Web Client](https://github.com/T-R-M-V-spin-off/eruplanwebclient) - The official web frontend.
 - [Eruplan Mobile Client](https://github.com/T-R-M-V-spin-off/eruplanmobileclient) - The official mobile app.
+
+## 🧪 Testing
+The test suite (JUnit 6 and Mockito 5) runs with `mvn test` and needs no database or credentials: unit tests mock every external dependency, web tests check the HTTP layer with MockMvc and persistence tests use an in-memory H2 database. The strategy, the FIRST principles applied and the defects found are described in [testing.md](testing.md).
 
 ## 🐳 Docker
 The application and its MySQL database can be run with Docker Compose (`docker compose up -d --build`). Images, secrets management, health checks and the anti-patterns avoided are described in [Docker.md](Docker.md).
