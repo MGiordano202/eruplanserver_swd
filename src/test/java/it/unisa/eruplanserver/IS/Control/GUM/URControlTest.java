@@ -104,6 +104,26 @@ class URControlTest {
         }
 
         @Test
+        @DisplayName("Errore imprevisto del service (es. database non raggiungibile): 500 con il motivo")
+        void erroreImprevisto() throws Exception {
+            doThrow(new IllegalStateException("database non raggiungibile")).when(urService).registra(any());
+
+            mvc.perform(post("/gestoreUtentiMobile/registra").contentType(MediaType.APPLICATION_JSON).content(REGISTRAZIONE_VALIDA))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(status().reason("Errore interno: database non raggiungibile"));
+        }
+
+        @Test
+        @DisplayName("Algoritmo di hash non disponibile: 500 errore tecnico")
+        void erroreTecnico() throws Exception {
+            doThrow(new java.security.NoSuchAlgorithmException("SHA-256")).when(urService).registra(any());
+
+            mvc.perform(post("/gestoreUtentiMobile/registra").contentType(MediaType.APPLICATION_JSON).content(REGISTRAZIONE_VALIDA))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(status().reason("Errore tecnico del server"));
+        }
+
+        @Test
         @DisplayName("Dati rifiutati dal service: 400 con il messaggio del service")
         void datiRifiutati() throws Exception {
             doThrow(new InvalidURDataException("errore: codice fiscale già registrato")).when(urService).registra(any());
