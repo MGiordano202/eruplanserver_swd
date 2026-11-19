@@ -28,6 +28,10 @@ class OPCControlTest {
 
     private static final String LOGIN = "{\"codiceFiscale\":\"VRDLGU75B02F839K\",\"password\":\"Operatore1\"}";
 
+    // JSON volutamente malformato, per verificare l'errore tecnico (TEXT: IntelliJ non lo valida come JSON)
+    // language=TEXT
+    private static final String JSON_NON_VALIDO = "{cf:";
+
     @Autowired
     private MockMvc mvc;
 
@@ -69,7 +73,7 @@ class OPCControlTest {
     @Test
     @DisplayName("JSON non valido: errore tecnico e service non chiamato")
     void jsonNonValido() throws Exception {
-        mvc.perform(post("/gestoreUtentiWeb/login").contentType(MediaType.APPLICATION_JSON).content("{cf:"))
+        mvc.perform(post("/gestoreUtentiWeb/login").contentType(MediaType.APPLICATION_JSON).content(JSON_NON_VALIDO))
                 .andExpect(status().isInternalServerError())
                 .andExpect(status().reason("ERRORE TECNICO"));
         verifyNoInteractions(opcService);

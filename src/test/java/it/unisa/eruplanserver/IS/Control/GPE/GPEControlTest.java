@@ -33,6 +33,10 @@ class GPEControlTest {
 
     private static final String SUCCESSO = "{\"message\": \"Piano generato e notifiche inviate con successo.\"}";
 
+    // JSON volutamente malformato, per verificare la risposta 400 (TEXT: IntelliJ non lo valida come JSON)
+    // language=TEXT
+    private static final String JSON_NON_VALIDO = "{nome:";
+
     @Autowired
     private MockMvc mvc;
 
@@ -57,7 +61,7 @@ class GPEControlTest {
     @Test
     @DisplayName("JSON non valido: 400 e piano non generato")
     void jsonNonValido() throws Exception {
-        mvc.perform(post("/gestorePiani/genera").session(operatore()).contentType(MediaType.APPLICATION_JSON).content("{nome:"))
+        mvc.perform(post("/gestorePiani/genera").session(operatore()).contentType(MediaType.APPLICATION_JSON).content(JSON_NON_VALIDO))
                 .andExpect(status().isBadRequest())
                 .andExpect(status().reason("Errore nel parsing del JSON."));
         verifyNoInteractions(gpeService);

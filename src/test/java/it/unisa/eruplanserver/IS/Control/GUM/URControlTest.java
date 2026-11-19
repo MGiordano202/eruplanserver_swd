@@ -39,6 +39,10 @@ class URControlTest {
             {"nome":" Mario ","cognome":"Rossi","codiceFiscale":"rssmra80a01h703x",
              "password":"Password1","sesso":"m","dataNascita":"15-03-1990"}""";
 
+    // JSON volutamente malformato, per verificare la risposta 400 (TEXT: IntelliJ non lo valida come JSON)
+    // language=TEXT
+    private static final String JSON_NON_VALIDO = "{nome:";
+
     @Autowired
     private MockMvc mvc;
 
@@ -83,7 +87,7 @@ class URControlTest {
         @Test
         @DisplayName("JSON non valido: 400")
         void jsonNonValido() throws Exception {
-            mvc.perform(post("/gestoreUtentiMobile/registra").contentType(MediaType.APPLICATION_JSON).content("{nome:"))
+            mvc.perform(post("/gestoreUtentiMobile/registra").contentType(MediaType.APPLICATION_JSON).content(JSON_NON_VALIDO))
                     .andExpect(status().isBadRequest())
                     .andExpect(status().reason("Errore: formato JSON non valido"));
             verifyNoInteractions(urService);

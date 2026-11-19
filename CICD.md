@@ -11,17 +11,17 @@ The workflow runs automatically on:
 
 ## Stages
 
-The workflow contains one job, `test`, which runs on a GitHub-hosted runner with the `ubuntu-latest` operating system. The job executes three steps in order:
+The workflow contains one job, `test` (shown as *Run Unit Tests*), which runs on a GitHub-hosted runner with the `ubuntu-latest` operating system. The job executes four steps in order:
 
-1. **Checkout code** (`actions/checkout@v4`): downloads the code of the commit that triggered the workflow.
+1. **Checkout code** (`actions/checkout@v5`): downloads the code of the commit that triggered the workflow.
 2. **Set up JDK 21** (`actions/setup-java@v4`): installs Java 21 (Temurin distribution), the version required by the project.
-3. **Run tests** (`mvn test`): Maven downloads the dependencies declared in `pom.xml`, compiles the project and runs its test suite. If compilation fails or any test fails, the workflow run is marked as failed.
+3. **Run tests** (`mvn -B test`): Maven downloads the dependencies declared in `pom.xml`, compiles the project and runs its test suite (unit tests, web layer tests and persistence tests on an in-memory H2 database; no external service is needed). If compilation fails or any test fails, the workflow run is marked as failed. `-B` (batch mode) keeps the log readable on the runner.
+4. **Upload test results** (`actions/upload-artifact@v4`): saves the Surefire reports (`target/surefire-reports/`) as the `test-results` artifact of the run. It uses `if: always()`, so the reports are kept also when tests fail, which is when they are most useful. They can be downloaded from the run page in the **Actions** tab.
 
 ## Build reproducibility
 
 - **Clean environment.** Every run starts on a new virtual machine, without files or configuration left over from previous runs or from a developer's computer. The result depends only on the code in the repository, avoiding the "works on my machine" problem.
 - **Explicit versions.** The Java version is fixed in the workflow (21), and the dependencies and their versions are declared in `pom.xml`. Every run therefore uses the same toolchain and libraries.
-- **Fixed action versions.** The actions used are referenced with an explicit version tag (`@v4`).
 
 ## Code quality
 
