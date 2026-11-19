@@ -99,6 +99,9 @@ The project is configured for deployment on **Azure Web Apps** via GitHub Action
 ## 🧪 Testing
 The test suite (JUnit 6 and Mockito 5) runs with `mvn test` and needs no database or credentials: unit tests mock every external dependency, web tests check the HTTP layer with MockMvc and persistence tests use an in-memory H2 database. The strategy, the FIRST principles applied and the defects found are described in [testing.md](testing.md).
 
+## 📊 Coverage
+Code coverage is measured with JaCoCo. `mvn clean verify` runs the tests, writes the report to `target/site/jacoco/index.html` and fails if a package goes below 80% line, 75% branch or 100% class coverage. Configuration, results and improvement plan are in [coverage.md](coverage.md).
+
 ## 🐳 Docker
 The application and its MySQL database can be run with Docker Compose (`docker compose up -d --build`). Images, secrets management, health checks and the anti-patterns avoided are described in [Docker.md](Docker.md).
 
