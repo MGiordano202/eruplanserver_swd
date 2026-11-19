@@ -50,8 +50,7 @@ Writing tests that check real behaviour, not only mocked calls, revealed defects
 | GNF | The response of `/gestoreNucleo/crea` failed with infinite JSON recursion |
 | Security | Password hashes were included in JSON responses |
 | Security | Any user could accept an invitation meant for someone else |
-
-One known defect is documented by a disabled test: `Utility.encrypt` pads hashes to 32 instead of 64 characters. Fixing it changes stored hashes, so it needs a migration plan first.
+| Security | `Utility.encrypt` padded hashes to 32 instead of 64 characters, so hashes starting with `0` were shorter than 64 characters |
 
 ## Running the tests
 

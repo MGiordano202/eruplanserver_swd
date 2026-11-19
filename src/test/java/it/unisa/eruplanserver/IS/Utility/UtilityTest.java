@@ -1,6 +1,5 @@
 package it.unisa.eruplanserver.IS.Utility;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -49,9 +48,6 @@ class UtilityTest {
     }
 
     @Test
-    @Disabled("Bug noto: encrypt riempie con zeri fino a 32 caratteri invece di 64, quindi circa 1 hash su 16 "
-            + "esce di 63 caratteri (es. \"input4\"). Correggerlo cambia gli hash già salvati: serve prima "
-            + "un piano di migrazione delle password.")
     @DisplayName("L'hash è sempre di 64 caratteri esadecimali, anche quando inizia con zeri")
     void encrypt_lunghezzaFissa() {
         // SHA-256 = 32 byte = 64 cifre esadecimali. Circa 1 hash su 16 inizia con '0':

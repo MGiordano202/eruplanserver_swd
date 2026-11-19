@@ -37,8 +37,8 @@ Results of `mvn clean verify` on 412 tests (all quality gates met):
 
 | Metric | Covered | Coverage |
 | :--- | ---: | ---: |
-| **Lines** | 721 / 741 | **97.3%** |
-| **Branches** | 397 / 418 | **95.0%** |
+| **Lines** | 722 / 741 | **97.4%** |
+| **Branches** | 398 / 418 | **95.2%** |
 | Methods | 120 / 122 | 98.4% |
 | Classes | 33 / 33 | 100% |
 
@@ -48,15 +48,14 @@ Results of `mvn clean verify` on 412 tests (all quality gates met):
 
 | Class | Lines | Branches | Reason |
 | :--- | ---: | ---: | :--- |
-| `Utility` | 75% | 50% | Hash padding branch: known defect, its test is `@Disabled` |
 | `ZonaPericoloConverter` | 80% | 100% | `catch` of a JSON write error |
 | `ZonaSicuraConverter` | 83% | 100% | Same as above |
+| `Utility` | 88% | 100% | Implicit constructor, never called |
 | `URControl` | 100% | 85% | Logout and date-parsing edge branches |
 | `GNFServiceImpl` | 96% | 89% | Validation branches of family unit creation |
 
 **Methods and branches not covered:**
 - `Validator` and `Utility` implicit constructors: the only 2 uncovered methods. The classes contain only static methods and are never instantiated.
-- `Utility.encrypt`: padding of hashes shorter than 64 characters.
 - `ZonaPericoloConverter` / `ZonaSicuraConverter.convertToDatabaseColumn`: the `JsonProcessingException` handler, which cannot be triggered with these simple objects.
 - `GNFServiceImpl.creaNucleoFamiliare` (7 of 54 branches) and `aggiornaVeicolo` (4 of 12): null municipality or postcode, missing seats with a vehicle, user without a family unit.
 - Single branches in `GNFControl`, `GSEControl` and `URControl.logout`: error paths of `abbandonaNucleo` and `rimuoviAppoggio`, an existing session at logout.
@@ -65,7 +64,6 @@ Results of `mvn clean verify` on 412 tests (all quality gates met):
 
 1. **Family unit validation (highest priority).** `creaNucleoFamiliare` and `aggiornaVeicolo` hold most of the uncovered branches and are a critical path for evacuation planning. Add parameterized tests for each missing or invalid field and for users without a family unit.
 2. **Controller error paths.** Add MockMvc tests where the service rejects the request in `abbandonaNucleo` and `rimuoviAppoggio`, and for logout with an active session.
-3. **Hash padding defect.** Fix `Utility.encrypt` together with a migration of the stored hashes, then re-enable `UtilityTest.encrypt_lunghezzaFissa`: this removes the last uncovered branch of `Utility`.
-4. **Code that cannot be reached.** Make the constructors of `Validator` and `Utility` private (utility classes); accept the converters' write-error handler as uncovered instead of writing artificial tests.
-5. **Raise the bar gradually.** The CI already enforces the gates; as the plan above is completed, the branch threshold can be raised towards the current level (95%), so that new code keeps the same standard.
-6. **Beyond coverage.** High coverage shows that code is executed, not that tests would detect a fault. Mutation testing will measure how many injected faults the tests actually catch.
+3. **Code that cannot be reached.** Make the constructors of `Validator` and `Utility` private (utility classes); accept the converters' write-error handler as uncovered instead of writing artificial tests.
+4. **Raise the bar gradually.** The CI already enforces the gates; as the plan above is completed, the branch threshold can be raised towards the current level (95%), so that new code keeps the same standard.
+5. **Beyond coverage.** High coverage shows that code is executed, not that tests would detect a fault. Mutation testing will measure how many injected faults the tests actually catch.
