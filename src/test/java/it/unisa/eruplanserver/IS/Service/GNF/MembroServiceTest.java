@@ -3,15 +3,21 @@ package it.unisa.eruplanserver.IS.Service.GNF;
 import it.unisa.eruplanserver.IS.Entity.GNF.MembroEntity;
 import it.unisa.eruplanserver.IS.Entity.GNF.NucleoFamiliareEntity;
 import it.unisa.eruplanserver.IS.Entity.GUM.UREntity;
+import it.unisa.eruplanserver.IS.Repository.GNF.AppoggioRepository;
 import it.unisa.eruplanserver.IS.Repository.GNF.MembroRepository;
+import it.unisa.eruplanserver.IS.Repository.GNF.NucleoFamiliareRepository;
+import it.unisa.eruplanserver.IS.Repository.GNF.ResidenzaRepository;
+import it.unisa.eruplanserver.IS.Repository.GNF.RichiestaAccessoRepository;
 import it.unisa.eruplanserver.IS.Repository.GUM.URRepository;
 import it.unisa.eruplanserver.IS.Exception.GNF.ValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +44,7 @@ import static org.mockito.Mockito.*;
  * - TC_M_03_11: Validazione campo minorenne (non null)
  * - TC_M_03_12: Inserimento corretto con tutti i dati validi
  */
+@ExtendWith(MockitoExtension.class)
 @DisplayName("Test Suite: RF-GNF.03 - Aggiunta Membro Manuale")
 class MembroServiceTest {
     
@@ -49,6 +56,19 @@ class MembroServiceTest {
     @Mock
     private URRepository urRepository;
 
+    // Le altre dipendenze di GNFServiceImpl: mockate anche se non usate, nessun campo resta null
+    @Mock
+    private NucleoFamiliareRepository nucleoRepository;
+
+    @Mock
+    private RichiestaAccessoRepository richiestaRepository;
+
+    @Mock
+    private AppoggioRepository appoggioRepository;
+
+    @Mock
+    private ResidenzaRepository residenzaRepository;
+
     @InjectMocks
     private GNFServiceImpl service;
 
@@ -57,7 +77,7 @@ class MembroServiceTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        // I mock sono creati e chiusi da MockitoExtension per ogni test
         logger.info("========== INIZIO TEST SUITE RF-GNF.03 ==========");
     }
 
@@ -509,22 +529,27 @@ class MembroServiceTest {
                 .build();
 
         when(urRepository.findByCodiceFiscale("CF123")).thenReturn(admin);
-        when(membroRepository.save(any())).thenReturn(input);
-        
+
         logger.debug("Setup: Admin trovato con nucleo id={}, Membro pronto per il salvataggio", nucleo.getId());
 
         // ACT
         service.aggiungiMembroManuale("CF123", input);
         logger.debug("Metodo aggiungiMembroManuale eseguito");
 
-        // ASSERT
-        assertNotNull(input, "Membro non deve essere null");
-        assertEquals("Sandro", input.getNome(), "Nome deve essere Sandro");
-        assertEquals("Capri", input.getCognome(), "Cognome deve essere Capri");
-        assertEquals("M", input.getSesso(), "Sesso deve essere M");
-        
-        // VERIFY
-        verify(membroRepository, times(1)).save(input);
+        // ASSERT: controlliamo l'oggetto che il service ha passato al repository,
+        // non l'input costruito dal test (che avrebbe sempre i valori impostati qui sopra)
+        ArgumentCaptor<MembroEntity> captor = ArgumentCaptor.forClass(MembroEntity.class);
+        verify(membroRepository, times(1)).save(captor.capture());
+        MembroEntity salvato = captor.getValue();
+        assertAll(
+                () -> assertEquals("Sandro", salvato.getNome()),
+                () -> assertEquals("Capri", salvato.getCognome()),
+                () -> assertEquals("CDT02DGE34FE4rgh", salvato.getCodiceFiscale()),
+                () -> assertEquals("10/02/1974", salvato.getDataDiNascita()),
+                () -> assertEquals("M", salvato.getSesso()),
+                () -> assertTrue(salvato.getAssistenza()),
+                () -> assertFalse(salvato.getMinorenne()),
+                () -> assertSame(nucleo, salvato.getNucleoFamiliare(), "il membro deve essere collegato al nucleo dell'admin"));
         verify(urRepository, times(1)).findByCodiceFiscale("CF123");
         
         logger.info("<<< TC_M_03_12 COMPLETATO: Membro salvato con successo");
@@ -532,5 +557,38 @@ class MembroServiceTest {
         logger.info("    - Cognome: {}", input.getCognome());
         logger.info("    - Data di nascita: {}", input.getDataDiNascita());
         logger.info("    - Sesso: {}", input.getSesso());
+    }
+
+    // -------------------------------------------------------------------------
+    // Scenari aggiuntivi (non presenti nella Test Case Specification)
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Admin senza nucleo familiare: membro rifiutato e non salvato")
+    void testAdminSenzaNucleo() {
+        MembroEntity input = MembroEntity.builder()
+                .nome("Sandro").cognome("Capri").codiceFiscale("CDT02DGE34FE4rgh")
+                .dataDiNascita("10/02/1974").sesso("M").assistenza(true).minorenne(false)
+                .build();
+        when(urRepository.findByCodiceFiscale(CF_ADMIN)).thenReturn(UREntity.builder().codiceFiscale(CF_ADMIN).build());
+
+        Exception ex = assertThrows(Exception.class, () -> service.aggiungiMembroManuale(CF_ADMIN, input));
+
+        assertEquals("Non hai ancora un nucleo.", ex.getMessage());
+        verify(membroRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Data di nascita inesistente (31/02): rifiutata come formato non valido")
+    void testDataInesistente() {
+        MembroEntity input = MembroEntity.builder()
+                .nome("Sandro").cognome("Capri").codiceFiscale("CDT02DGE34FE4rgh")
+                .dataDiNascita("31/02/1974").sesso("M").assistenza(true).minorenne(false)
+                .build();
+
+        ValidationException ex = assertThrows(ValidationException.class, () -> service.aggiungiMembroManuale(CF_ADMIN, input));
+
+        assertEquals("Formato data non valido", ex.getMessage());
+        verifyNoInteractions(urRepository, membroRepository);
     }
 }

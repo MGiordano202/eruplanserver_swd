@@ -6,7 +6,6 @@ import it.unisa.eruplanserver.IS.Entity.GPE.ZonaPericolo;
 import it.unisa.eruplanserver.IS.Entity.GPE.ZonaSicura;
 import it.unisa.eruplanserver.IS.Utility.Validator;
 import it.unisa.eruplanserver.IS.Repository.GPE.GPERepository;
-import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,8 +38,7 @@ class ZonaServiceTest {
     // Componenti Mock/Spy
     // =========================
 
-    @Spy
-    private Validator validator;
+    // Validator ha solo metodi statici: si chiamano direttamente, senza spy
 
     @Mock
     private GPERepository gpeRepository;
@@ -80,9 +78,8 @@ class ZonaServiceTest {
                 new ZonaSicura(new Punto(40.872507, 14.328918), 250)
         );
 
-        // Non dovrebbe lanciare eccezioni
-        validator.creaZoneSicure(input);
-
+        // Non deve lanciare eccezioni
+        assertDoesNotThrow(() -> Validator.creaZoneSicure(input));
     }
 
     @Test
@@ -90,7 +87,7 @@ class ZonaServiceTest {
     void testTC_W_18_1_ListaZoneSicureNulla() {
         // Caso Null
         Exception exceptionNull = assertThrows(IllegalArgumentException.class, () -> {
-            validator.creaZoneSicure(null);
+            Validator.creaZoneSicure(null);
         });
         assertEquals(
                 "La creazione della zona sicura non viene effettuata dato che per il campo \"ListaZoneSicure\" non è stata definita nessuna coordinata.",
@@ -99,7 +96,7 @@ class ZonaServiceTest {
 
         // Caso Empty
         Exception exceptionEmpty = assertThrows(IllegalArgumentException.class, () -> {
-            validator.creaZoneSicure(Collections.emptyList());
+            Validator.creaZoneSicure(Collections.emptyList());
         });
         assertEquals(
                 "La creazione della zona sicura non viene effettuata dato che per il campo \"ListaZoneSicure\" non è stata definita nessuna coordinata.",
@@ -115,7 +112,7 @@ class ZonaServiceTest {
         );
 
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            validator.creaZoneSicure(input);
+            Validator.creaZoneSicure(input);
         });
         assertTrue(exception.getMessage().contains("raggio è troppo corto"));
     }
@@ -128,20 +125,20 @@ class ZonaServiceTest {
         );
 
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            validator.creaZoneSicure(input);
+            Validator.creaZoneSicure(input);
         });
         assertTrue(exception.getMessage().contains("raggio è troppo grande"));
     }
 
     @Test
-    @SneakyThrows
+    @DisplayName("TC-W-18.4: Creazione Zona Sicura singola con successo")
     void testTC_W_18_4_CreazioneZonaSicura_Singola_Successo() {
         List<ZonaSicura> input = Collections.singletonList(
                 new ZonaSicura(new Punto(40.872507, 14.328918), 50)
         );
 
-        // Non dovrebbe lanciare eccezioni
-        validator.creaZoneSicure(input);
+        // Non deve lanciare eccezioni
+        assertDoesNotThrow(() -> Validator.creaZoneSicure(input));
     }
 
     @Test
@@ -153,7 +150,7 @@ class ZonaServiceTest {
         );
 
         // Deve passare senza eccezioni (Esito: [OK])
-        assertDoesNotThrow(() -> validator.creaZoneSicure(input));
+        assertDoesNotThrow(() -> Validator.creaZoneSicure(input));
     }
 
     @Test
@@ -168,7 +165,7 @@ class ZonaServiceTest {
         // Assumiamo che zonaSicuraService chiami internamente il validator o faccia check simili
         // Se zonaSicuraService non implementa logica, usiamo validator direttamente per il test
         Exception ex = assertThrows(Exception.class, () ->
-            validator.creaZoneSicure(lista) 
+            Validator.creaZoneSicure(lista) 
             // O zonaSicuraService.creaZonaSicura(lista) se implementato
         );
 
@@ -184,7 +181,7 @@ class ZonaServiceTest {
         );
 
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            validator.creaZoneSicure(input);
+            Validator.creaZoneSicure(input);
         });
         assertTrue(exception.getMessage().contains("raggio è troppo grande"));
     }
@@ -197,14 +194,14 @@ class ZonaServiceTest {
                 new ZonaSicura(new Punto(40.830956, 14.392776), 150),
                 new ZonaSicura(new Punto(40.872507, 14.328918), 50)
         );
-        assertDoesNotThrow(() -> validator.creaZoneSicure(inputMin));
+        assertDoesNotThrow(() -> Validator.creaZoneSicure(inputMin));
 
         // Caso raggio massimo (250)
         List<ZonaSicura> inputMax = Arrays.asList(
                 new ZonaSicura(new Punto(40.830956, 14.392776), 150),
                 new ZonaSicura(new Punto(40.872507, 14.328918), 250)
         );
-        assertDoesNotThrow(() -> validator.creaZoneSicure(inputMax));
+        assertDoesNotThrow(() -> Validator.creaZoneSicure(inputMax));
     }
 
     /* =======================================================================
@@ -217,7 +214,7 @@ class ZonaServiceTest {
         List<Punto> input = Collections.singletonList(new Punto(40.872507, 14.328918));
 
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            validator.creaZonaPericolo(input);
+            Validator.creaZonaPericolo(input);
         });
         assertTrue(exception.getMessage().contains("numero di punti troppo basso"));
     }
@@ -233,7 +230,7 @@ class ZonaServiceTest {
         );
 
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            validator.creaZonaPericolo(input);
+            Validator.creaZonaPericolo(input);
         });
         assertTrue(exception.getMessage().contains("ultimo punto della lista non è collegato al primo"));
     }
@@ -248,11 +245,11 @@ class ZonaServiceTest {
                 new Punto(40.830956, 14.392776)
         );
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            validator.creaZonaPericolo(input);
+            Validator.creaZonaPericolo(input);
         });
-        // Nota: Il messaggio d'errore dipende dalla logica esatta del validator, 
-        // qui assumiamo controlli la chiusura.
-        assertNotNull(exception);
+        // Nessun punto ripetuto e primo != ultimo: il primo punto non è collegato a nessun altro
+        assertEquals("La creazione della zona di pericolo non viene effettuata dato che nel campo “ZonaPericolo” il primo punto non è collegato a nessun altro.",
+                exception.getMessage());
     }
 
     @Test
@@ -264,7 +261,7 @@ class ZonaServiceTest {
                 new Punto(40.846022, 14.409943),
                 new Punto(40.872507, 14.328918) // Chiuso correttamente
         );
-        assertDoesNotThrow(() -> validator.creaZonaPericolo(input));
+        assertDoesNotThrow(() -> Validator.creaZonaPericolo(input));
     }
 
     @Test
@@ -278,10 +275,11 @@ class ZonaServiceTest {
         List<Punto> input = Arrays.asList(p1, p2, p3, p2, p1);
 
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            validator.creaZonaPericolo(input);
+            Validator.creaZonaPericolo(input);
         });
-        // Verifica generica se il messaggio contiene errore di forma
-        assertNotNull(exception);
+        // Il poligono è chiuso (p1 ... p1) ma p2 compare due volte
+        assertEquals("La creazione della zona di pericolo non viene effettuata dato che il campo “ZonaPericolo” contiene punti ripetuti.",
+                exception.getMessage());
     }
 
     /* =======================================================================
