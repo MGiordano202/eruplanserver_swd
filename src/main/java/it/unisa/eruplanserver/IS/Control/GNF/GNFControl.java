@@ -76,10 +76,13 @@ public class GNFControl {
 
     // RF-GNF.02: Accetta invito
     @PostMapping("/accetta/{idRichiesta}")
-    public ResponseEntity<String> accettaInvito(@PathVariable Long idRichiesta) {
+    public ResponseEntity<String> accettaInvito(@PathVariable Long idRichiesta, HttpServletRequest request) {
         logger.info("POST /gestoreNucleo/accetta called - idRichiesta: {}", idRichiesta);
+        String cfUtente = (String) request.getSession().getAttribute("codiceFiscale");
+        if (cfUtente == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login richiesto");
+
         try {
-            gnfService.accettaInvito(idRichiesta);
+            gnfService.accettaInvito(idRichiesta, cfUtente);
             return ResponseEntity.ok("Benvenuto nel nucleo!");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

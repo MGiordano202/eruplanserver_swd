@@ -1,6 +1,7 @@
 package it.unisa.eruplanserver.IS.Entity.GNF;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import it.unisa.eruplanserver.IS.Entity.GUM.UREntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -32,6 +33,8 @@ public class NucleoFamiliareEntity {
     // L'utente che ha creato il nucleo (Amministratore del nucleo)
     @OneToOne
     @JoinColumn(name = "admin_id", nullable = false)
+    // L'admin punta di nuovo a questo nucleo: senza escludere quel campo il JSON va in ricorsione infinita
+    @JsonIgnoreProperties("nucleoFamiliare")
     private UREntity admin;
 
     // Lista degli utenti registrati che fanno parte del nucleo

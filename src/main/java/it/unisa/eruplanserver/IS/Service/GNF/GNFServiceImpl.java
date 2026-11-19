@@ -55,13 +55,19 @@ public class GNFServiceImpl implements GNFService {
 
     // RF-GNF.02: Accetta richiesta
     @Transactional
-    public void accettaInvito(Long idRichiesta) throws Exception {
+    public void accettaInvito(Long idRichiesta, String cfUtente) throws Exception {
         RichiestaAccessoEntity richiesta = richiestaRepository.findById(idRichiesta)
                 .orElseThrow(() -> new Exception("Richiesta non trovata"));
 
+        UREntity utente = richiesta.getUtenteInvitato(); // Recupera l'utente invitato
+
+        // Solo il destinatario può accettare: altrimenti chiunque conosca l'ID entrerebbe nel nucleo altrui
+        if (utente == null || cfUtente == null || !cfUtente.equalsIgnoreCase(utente.getCodiceFiscale())) {
+            throw new Exception("Non puoi accettare un invito destinato a un altro utente.");
+        }
+
         if (!"PENDING".equals(richiesta.getStato())) throw new Exception("Richiesta non valida");
 
-        UREntity utente = richiesta.getUtenteInvitato(); // Recupera l'utente invitato
         utente.setNucleoFamiliare(richiesta.getNucleo()); // Entra nel nucleo
         urRepository.save(utente);
 
@@ -387,7 +393,7 @@ public class GNFServiceImpl implements GNFService {
         // Validazione dati indirizzo
         if (!Validator.isIndirizzoValid(
                 residenza.getViaPiazza(), residenza.getCivico(), residenza.getComune(),
-                residenza.getCap(), null, residenza.getRegione(), residenza.getPaese())) {
+                residenza.getCap(), residenza.getProvincia(), residenza.getRegione(), residenza.getPaese())) {
             throw new Exception("Dati residenza non validi.");
         }
 
@@ -397,6 +403,7 @@ public class GNFServiceImpl implements GNFService {
         current.setCivico(residenza.getCivico());
         current.setComune(residenza.getComune());
         current.setCap(residenza.getCap());
+        current.setProvincia(residenza.getProvincia());
         current.setRegione(residenza.getRegione());
         current.setPaese(residenza.getPaese());
         residenzaRepository.save(current);
