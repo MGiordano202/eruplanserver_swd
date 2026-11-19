@@ -28,6 +28,9 @@ public class GPEServiceImpl implements GPEService {
         if (!Validator.isNomePianoValid(nome)) {
             throw new GPEException("ERRORE - NOME PIANO NON VALIDO (Deve contenere solo lettere/numeri e avere 3-35 caratteri).");
         }
+        // Il Validator ignora gli spazi esterni: li togliamo anche qui, altrimenti "  Piano A  " aggira
+        // il controllo duplicati di "Piano A" e può superare i 35 caratteri della colonna
+        nome = nome.trim();
         if (gpeRepository.existsByNome(nome)) {
             throw new GPEException("ERRORE - ESISTE GIÀ UN PIANO CON QUESTO NOME.");
         }

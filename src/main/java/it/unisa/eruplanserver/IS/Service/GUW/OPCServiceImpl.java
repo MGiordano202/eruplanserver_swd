@@ -29,9 +29,8 @@ public class OPCServiceImpl implements OPCService {
         if (operatore == null) {
             throw new OPCNotFoundException("ERRORE - OPERATORE NON TROVATO.");
         }
-        String passwordHash = Utility.encrypt(password);
-
-        if (!passwordHash.equals(operatore.getPassword())) {
+        // null = campo assente nella richiesta: è una password errata, non un crash
+        if (password == null || !Utility.encrypt(password).equals(operatore.getPassword())) {
             throw new LoginPasswordsMismatchException("ERRORE - PASSWORD ERRATA.");
         }
     }

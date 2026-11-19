@@ -1,7 +1,13 @@
 package it.unisa.eruplanserver.IS.Entity.GPE;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.Objects;
 
+// Getter e setter servono a Jackson per salvare il punto come JSON (ZonaPericoloConverter, ZonaSicuraConverter)
+@Getter
+@Setter
 public class Punto {
     double lat, lon;
 

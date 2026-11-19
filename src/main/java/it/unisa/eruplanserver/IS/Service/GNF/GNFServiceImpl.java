@@ -291,7 +291,8 @@ public class GNFServiceImpl implements GNFService {
                 throw new Exception("Il numero di posti deve essere tra 1 e 8.");
             }
         } else {
-            numeroPostiVeicolo = null;
+            // 0 e non null: in NucleoFamiliareEntity il campo è un int e null causerebbe NullPointerException
+            numeroPostiVeicolo = 0;
         }
 
         //Validazione per l'indirizzo
@@ -340,7 +341,8 @@ public class GNFServiceImpl implements GNFService {
                 throw new Exception("Il numero di posti deve essere tra 1 e 8.");
             }
         }else{
-            numeroPostiVeicolo = null;
+            // 0 e non null: in NucleoFamiliareEntity il campo è un int e null causerebbe NullPointerException
+            numeroPostiVeicolo = 0;
         }
         nucleo.setHasVeicolo(hasVeicolo);
         nucleo.setNumeroPostiVeicolo(numeroPostiVeicolo);
