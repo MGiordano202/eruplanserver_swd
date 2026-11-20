@@ -1,5 +1,9 @@
 # Eruplan Server
 
+[![CI](https://github.com/MGiordano202/eruplanserver_swd/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/MGiordano202/eruplanserver_swd/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/MGiordano202/eruplanserver_swd/branch/main/graph/badge.svg)](https://codecov.io/gh/MGiordano202/eruplanserver_swd)
+[![Mutation Testing](https://github.com/MGiordano202/eruplanserver_swd/actions/workflows/mutation.yml/badge.svg?branch=main)](https://github.com/MGiordano202/eruplanserver_swd/actions/workflows/mutation.yml)
+
 <p align="center"><img src='https://i.postimg.cc/G3YX9jYR/logo-eruplan.png' alt="Eruplan Logo" height="400"></p>
 
 
