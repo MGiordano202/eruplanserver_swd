@@ -102,6 +102,9 @@ The test suite (JUnit 6 and Mockito 5) runs with `mvn test` and needs no databas
 ## 📊 Coverage
 Code coverage is measured with JaCoCo. `mvn clean verify` runs the tests, writes the report to `target/site/jacoco/index.html` and fails if a package goes below 80% line, 75% branch or 100% class coverage. Configuration, results and improvement plan are in [coverage.md](coverage.md).
 
+## 🧬 Mutation Testing
+Mutation testing is done with PITest. `mvn test-compile org.pitest:pitest-maven:mutationCoverage` injects faults into services, controllers and utilities, writes the report to `target/pit-reports/index.html` and fails if the mutation score or line coverage goes below 80%. Configuration, results and improvement plan are in [mutation.md](mutation.md).
+
 ## 🐳 Docker
 The application and its MySQL database can be run with Docker Compose (`docker compose up -d --build`). Images, secrets management, health checks and the anti-patterns avoided are described in [Docker.md](Docker.md).
 
