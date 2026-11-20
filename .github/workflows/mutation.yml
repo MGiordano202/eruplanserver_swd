@@ -1,0 +1,44 @@
+name: Mutation Testing
+
+# Separate from CI: PITest takes a few minutes and would slow down every run
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push cancels the run still in progress on the same branch
+concurrency:
+  group: mutation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pitest:
+    runs-on: ubuntu-latest
+    name: Run PITest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # Fails if the mutation score or the line coverage is below 80% (thresholds in pom.xml)
+      - name: Run mutation tests with quality gates
+        run: mvn -B test-compile org.pitest:pitest-maven:mutationCoverage
+
+      - name: Upload mutation report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-report
+          path: target/pit-reports/
