@@ -285,6 +285,67 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Mutation testing: "mvn test-compile org.pitest:pitest-maven:mutationCoverage", report in target/pit-reports/index.html -->
+            <plugin>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-maven</artifactId>
+                <version>1.30.2</version>
+                <dependencies>
+                    <!-- Esegue i test della JUnit Platform (Jupiter) -->
+                    <dependency>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-junit5-plugin</artifactId>
+                        <version>1.2.3</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <!-- Classi da mutare: logica applicativa (service, controller, utility) -->
+                    <targetClasses>
+                        <param>it.unisa.eruplanserver.IS.Service.*</param>
+                        <param>it.unisa.eruplanserver.IS.Utility.*</param>
+                        <param>it.unisa.eruplanserver.IS.Control.*</param>
+                        <param>it.unisa.eruplanserver.IS.Entity.GPE.Punto</param>
+                    </targetClasses>
+                    <targetTests>
+                        <param>it.unisa.eruplanserver.*</param>
+                    </targetTests>
+                    <!-- Escluse a priori: nessuna logica da mutare -->
+                    <excludedClasses>
+                        <param>it.unisa.eruplanserver.Configuration.*</param>
+                        <param>it.unisa.eruplanserver.EruplanServerApplication</param>
+                        <param>it.unisa.eruplanserver.IS.Exception.*</param>
+                        <param>it.unisa.eruplanserver.IS.Repository.*</param>
+                    </excludedClasses>
+                    <!-- Test che non esercitano le classi mutate: solo tempo in più -->
+                    <excludedTestClasses>
+                        <param>it.unisa.eruplanserver.EruplanServerApplicationTest</param>
+                        <param>it.unisa.eruplanserver.Configuration.*</param>
+                    </excludedTestClasses>
+                    <mutators>
+                        <mutator>CONDITIONALS_BOUNDARY</mutator>
+                        <mutator>INVERT_NEGS</mutator>
+                        <mutator>NEGATE_CONDITIONALS</mutator>
+                        <mutator>EMPTY_RETURNS</mutator>
+                        <mutator>FALSE_RETURNS</mutator>
+                        <mutator>TRUE_RETURNS</mutator>
+                        <mutator>NULL_RETURNS</mutator>
+                        <mutator>PRIMITIVE_RETURNS</mutator>
+                        <mutator>REMOVE_CONDITIONALS</mutator>
+                    </mutators>
+                    <!-- Quality gates: la build fallisce sotto le soglie -->
+                    <mutationThreshold>80</mutationThreshold>
+                    <coverageThreshold>80</coverageThreshold>
+                    <timeoutConstant>5000</timeoutConstant>
+                    <timeoutFactor>1.5</timeoutFactor>
+                    <threads>4</threads>
+                    <outputFormats>
+                        <outputFormat>HTML</outputFormat>
+                        <outputFormat>XML</outputFormat>
+                    </outputFormats>
+                    <timestampedReports>false</timestampedReports>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
