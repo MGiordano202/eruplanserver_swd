@@ -16,6 +16,8 @@ import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -449,6 +451,35 @@ public class GNFServiceImplTest {
         verify(nucleoRepository).save(mioNucleo);
         assertTrue(mioNucleo.isHasVeicolo());
         assertEquals(4, mioNucleo.getNumeroPostiVeicolo());
+    }
+
+    @ParameterizedTest(name = "{0} posti")
+    @ValueSource(ints = {1, 8})
+    @DisplayName("Aggiorna veicolo: 1 e 8 posti (limiti) sono accettati")
+    void aggiornaVeicolo_limitiValidi(int posti) throws Exception {
+        UREntity admin = UREntity.builder().id(10L).codiceFiscale(CF_ADMIN).build();
+        NucleoFamiliareEntity mioNucleo = NucleoFamiliareEntity.builder().id(1L).admin(admin).build();
+        admin.setNucleoFamiliare(mioNucleo);
+        when(urRepository.findByCodiceFiscale(CF_ADMIN)).thenReturn(admin);
+
+        gnfService.aggiornaVeicolo(CF_ADMIN, true, posti);
+
+        verify(nucleoRepository).save(mioNucleo);
+        assertEquals(posti, mioNucleo.getNumeroPostiVeicolo());
+    }
+
+    @ParameterizedTest(name = "{0} posti")
+    @ValueSource(ints = {0, -1, 9})
+    @DisplayName("Aggiorna veicolo: meno di 1 o più di 8 posti sono rifiutati")
+    void aggiornaVeicolo_postiFuoriLimite(int posti) {
+        UREntity admin = UREntity.builder().id(10L).codiceFiscale(CF_ADMIN).build();
+        admin.setNucleoFamiliare(NucleoFamiliareEntity.builder().id(1L).admin(admin).build());
+        when(urRepository.findByCodiceFiscale(CF_ADMIN)).thenReturn(admin);
+
+        Exception ex = assertThrows(Exception.class, () -> gnfService.aggiornaVeicolo(CF_ADMIN, true, posti));
+
+        assertEquals("Il numero di posti deve essere tra 1 e 8.", ex.getMessage());
+        verifyNoInteractions(nucleoRepository);
     }
 
     @Test

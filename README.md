@@ -84,7 +84,7 @@ Each module exposes its endpoints under its own path, directly on the server roo
 * **Health check:** `/utenti/` (returns a greeting) and `/actuator/health`
 
 ## ☁️ Deployment
-The project is configured for deployment on **Azure Web Apps** via GitHub Actions workflow. The configuration file is located at `.github/workflows/main_eruplanserver.yml`.
+After every successful CI run on `main`, the `.github/workflows/docker-build.yml` workflow builds the Docker image and publishes it to Docker Hub (see [Docker.md](Docker.md)). The previous Azure Web Apps workflow was removed because the original Azure environment is no longer available (see [CICD.md](CICD.md)).
 
 ## 🛠 Built With
 - [Java 21](https://www.oracle.com/java/) - Core language.

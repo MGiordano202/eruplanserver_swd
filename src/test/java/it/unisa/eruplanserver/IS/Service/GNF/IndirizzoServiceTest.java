@@ -14,6 +14,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -662,6 +664,30 @@ class IndirizzoServiceTest {
         assertEquals("Il numero di posti deve essere tra 1 e 8.", troppiPosti.getMessage());
 
         verifyNoInteractions(residenzaRepository, nucleoFamiliareRepository);
+    }
+
+    @ParameterizedTest(name = "{0} posti")
+    @ValueSource(ints = {0, -1})
+    @DisplayName("Veicolo con meno di 1 posto: rifiutato")
+    void testVeicoloSenzaPostiValidi(int posti) {
+        Exception ex = assertThrows(Exception.class, () ->
+                service.creaNucleoFamiliare("CF123", residenzaValida().build(), true, posti));
+        assertEquals("Il numero di posti deve essere tra 1 e 8.", ex.getMessage());
+
+        verifyNoInteractions(residenzaRepository, nucleoFamiliareRepository);
+    }
+
+    @Test
+    @DisplayName("Veicolo con 1 posto (limite minimo): nucleo creato")
+    void testVeicoloUnPosto() throws Exception {
+        UREntity utente = UREntity.builder().codiceFiscale("CF123").build();
+        when(urRepository.findByCodiceFiscale("CF123")).thenReturn(utente);
+        when(residenzaRepository.save(any(ResidenzaEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(nucleoFamiliareRepository.save(any(NucleoFamiliareEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        NucleoFamiliareEntity nucleo = service.creaNucleoFamiliare("CF123", residenzaValida().build(), true, 1);
+
+        assertEquals(1, nucleo.getNumeroPostiVeicolo());
     }
 
     @Test

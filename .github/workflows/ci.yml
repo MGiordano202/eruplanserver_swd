@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Run Unit Tests
 
     steps:
@@ -29,7 +29,7 @@ jobs:
       # Compiles, runs the tests, writes the JaCoCo report (phase test)
       # and enforces the JaCoCo quality gates (phase verify)
       - name: Run tests with coverage quality gates
-        run: mvn -B verify
+        run: ./mvnw -B verify
 
       # Keeps the Surefire reports of every run, also when tests fail (if: always())
       - name: Upload test results

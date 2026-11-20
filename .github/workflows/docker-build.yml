@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   build-docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Build and push Docker image
     # Only after a successful CI run, or when started manually
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'

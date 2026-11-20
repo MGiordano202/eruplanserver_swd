@@ -1,69 +1,43 @@
-# Containerization Report
+# Containerizzazione
 
-The backend runs as two containers orchestrated by Docker Compose: the Spring Boot application (`app`) and a MySQL 8.4 database (`db`).
+Il backend gira in due container orchestrati da Docker Compose: l'applicazione Spring Boot (`app`) e MySQL 8.4 (`db`). File: [`Dockerfile`](Dockerfile), [`docker-compose.yml`](docker-compose.yml), [`.dockerignore`](.dockerignore). Avvio: `docker compose up -d --build`, dopo aver creato i file in `secrets/` ([secrets/README.md](secrets/README.md)).
 
-Files: [`Dockerfile`](Dockerfile), [`docker-compose.yml`](docker-compose.yml), [`.dockerignore`](.dockerignore).
+## Difetti emersi containerizzando
 
-## How to run
+Eseguire il jar in un container pulito, invece che dall'IDE, ha fatto emergere problemi che lo sviluppo locale nascondeva:
 
-```bash
-mkdir -p secrets
-openssl rand -base64 24 > secrets/db_password.txt
-openssl rand -base64 24 > secrets/db_root_password.txt
-cp <firebase-service-account>.json secrets/firebase_credentials.json
-docker compose up -d --build
-curl http://localhost:8080/actuator/health   # {"status":"UP"}
-```
+1. **L'applicazione non partiva dal jar.** Nel `pom.xml` `byte-buddy` aveva scope `test` (un workaround per Java 23), quindi mancava nel jar di produzione e Hibernate non si avviava. Nell'IDE il problema non si vedeva perché il classpath di esecuzione include anche le dipendenze di test. Lo scope è stato rimosso.
+2. **Mapping JPA errato.** `ZonaPericolo` era annotata `@Entity` ma viene salvata come JSON tramite `ZonaPericoloConverter`: Hibernate falliva sul campo `List<Punto>`. Le annotazioni JPA sono state rimosse.
+3. **Dipendenza esterna obbligatoria all'avvio.** Il progetto Firebase originale non esiste più e l'app non parte senza credenziali Firebase valide nel formato. Con un service account generato localmente l'app si avvia, ma le notifiche push falliscono finché non viene configurato un progetto reale. Un servizio opzionale (le notifiche) blocca l'avvio dell'intero sistema.
 
 ## Dockerfile
 
-- **Build stage** (`maven:3.9.9-eclipse-temurin-21`): `pom.xml` is copied and dependencies are resolved before the sources are copied. A source change therefore does not invalidate the dependency layer. A BuildKit cache mount keeps `~/.m2` between builds. The jar is then split into Spring Boot layers.
-- **Runtime stage** (`eclipse-temurin:21-jre-alpine`): JRE only. The four layers are copied from the least to the most frequently changing (dependencies, loader, snapshots, application), so a code change only rebuilds a few KB.
-- The process runs as the unprivileged user `spring`, starts in exec form (the JVM is PID 1 and receives `SIGTERM`), has a JVM memory limit tied to the container (`MaxRAMPercentage=75`) and terminates on `OutOfMemoryError`, so the restart policy can bring it back.
-- A `HEALTHCHECK` probes `/actuator/health`, which also checks the database connection.
+- **Multi-stage:** lo stage di build (`maven:3.9.9-eclipse-temurin-21`) copia prima il `pom.xml` e risolve le dipendenze, poi i sorgenti, con una cache BuildKit per `~/.m2`. Il runtime (`eclipse-temurin:21-jre-alpine`) contiene solo la JRE.
+- **Layer Spring Boot** copiati dal meno al più variabile: una modifica al codice ricostruisce pochi KB.
+- **Sicurezza e affidabilità:** utente non privilegiato `spring`, entrypoint in forma exec (la JVM è PID 1 e riceve `SIGTERM`), memoria legata al container (`MaxRAMPercentage=75`), uscita su `OutOfMemoryError` così la restart policy può riavviarla, `HEALTHCHECK` su `/actuator/health` (che verifica anche il database).
 
 ## docker-compose.yml
 
-| Requirement | Implementation |
+| Requisito | Implementazione |
 |---|---|
-| Custom app container | `app`, built from the `Dockerfile` and tagged `eruplanserver:1.0.0` |
-| Supporting service | `db`: `mysql:8.4.3` |
-| Data durability | named volume `db-data` mounted on `/var/lib/mysql` |
-| Health checks | `db`: `mysqladmin ping`; `app`: `/actuator/health` must return `UP` |
-| Failure recovery | `restart: on-failure:5` on both services; `app` starts only when `db` is `service_healthy` |
-| Secrets | Compose `secrets`, mounted as files in `/run/secrets` |
+| Servizio di supporto | `db`: `mysql:8.4.3`, senza `ports`, raggiungibile solo sulla rete interna `backend` |
+| Durabilità | volume `db-data` su `/var/lib/mysql` |
+| Health check | `mysqladmin ping`; `/actuator/health` = `UP`; `app` parte solo con `db` `service_healthy` |
+| Recupero | `restart: on-failure:5` su entrambi |
+| Segreti | Compose `secrets` in `/run/secrets`: MySQL li legge con `*_FILE`, Spring con `configtree`, senza modifiche al codice. `secrets/` è in `.gitignore` e `.dockerignore` |
 
-**Secrets management.** No password is written in the compose file, the image or the environment.
-- MySQL reads its passwords from `MYSQL_PASSWORD_FILE` and `MYSQL_ROOT_PASSWORD_FILE`.
-- The application loads `/run/secrets` through Spring's `configtree` (`SPRING_CONFIG_IMPORT`). Each file becomes a property named after it, so `LOCAL_DATASOURCE_PASSWORD` and `FIREBASE_CREDENTIALS` resolve with no code changes.
-- The `secrets/` folder is listed in `.gitignore` and `.dockerignore`, so secrets never reach git or the build context.
+Verificato: dopo `down`/`up` i dati restano; dopo `kill -TERM 1` Docker riavvia l'app (`RestartCount=1`) che torna `healthy`; `env` nel container non contiene password; `id` restituisce `uid=100(spring)`.
 
-## Anti-patterns avoided
+**Anti-pattern evitati:** tag `latest`, immagini con tool di build, esecuzione come root, segreti in `ENV`/`ARG`/layer/compose, contesto di build non filtrato, jar in un unico layer, entrypoint in forma shell, `sleep` al posto degli health check, dati nel filesystem del container, database esposto, test eseguiti durante la build (sono in CI, [CICD.md](CICD.md)).
 
-1. **`latest` or floating tags**: every base image has an explicit version.
-2. **Fat images with build tools**: Maven and the JDK stay in the build stage; the runtime image ships only a JRE.
-3. **Running as root**: the app runs as `spring` (uid 100).
-4. **Secrets in `ENV`, `ARG`, image layers or the compose file**: Compose secrets are used instead (verified: `env` inside the container contains no password or key).
-5. **Copying the whole context / cache busting**: `.dockerignore` excludes `.git`, `target`, IDE files and secrets; `pom.xml` is copied before `src`.
-6. **Single fat-jar layer**: Spring Boot layers are extracted.
-7. **Shell-form entrypoint**: exec form is used, so signals reach the JVM and shutdown is graceful.
-8. **Container with no health information**: both services have a health check, and `depends_on` waits for the database instead of a fixed `sleep`.
-9. **Data inside the container filesystem**: MySQL data lives in a named volume.
-10. **Exposing the database**: `db` has no `ports` and is reachable only on the internal `backend` network.
-11. **Running tests in the image build**: tests run in CI ([CICD.md](CICD.md)).
+## Audit del workflow di riferimento (SorrentoMarina)
 
-## Verification
+| Domanda | Riferimento | Nostro `docker-build.yml` |
+|---|---|---|
+| Trigger | `workflow_run` su "CI/CD Pipeline" completata + `if: conclusion == 'success'` | Stesso schema. Nel riferimento però la condizione `if` rende **inutile `workflow_dispatch`**: in un avvio manuale `workflow_run` non esiste e il job viene sempre saltato. Noi accettiamo anche `event_name == 'workflow_dispatch'` |
+| Segreti | `DOCKER_USERNAME` e `DOCKER_PASSWORD` (token) con `docker/login-action` | Uguale, con permessi `contents: read` |
+| Multi-piattaforma | `linux/amd64`, `linux/arm64` (server ARM, Apple Silicon) | Uguale, con QEMU esplicito; la build Maven gira su `$BUILDPLATFORM`, quindi non viene emulata |
+| Caching | `actions/cache` per `~/.m2` + cache `gha` di Buildx | Solo cache `gha`: Maven gira dentro il Dockerfile multi-stage, quindi lo step JDK non serve |
+| Metadati | `metadata-action` con tag `latest` e `version-tag` fisso | `latest` + `sha-<commit>`: il tag fisso viene sovrascritto a ogni push, quello per commit permette di risalire al codice e fare rollback |
 
-Tested with Docker 29.9 and Compose v5.7:
-- Both containers reach `healthy`, and `/actuator/health` returns `UP`.
-- **Durability:** a row written to MySQL is still present after `docker compose down` followed by `up`.
-- **Recovery:** after the JVM is terminated (`kill -TERM 1`, exit code 143), Docker restarts it (`RestartCount=1`) and it becomes `healthy` again.
-- **Least privilege:** `id` inside the container returns `uid=100(spring)`.
-
-## Faults found while containerizing
-
-Running the packaged jar in a clean container exposed two startup failures that the IDE had hidden:
-1. In `pom.xml`, `byte-buddy` was declared with `test` scope (as a workaround for Java 23). This removed it from the runtime jar, so Hibernate could not start. The scope was removed.
-2. `ZonaPericolo` was annotated with `@Entity`, although it is stored as JSON through `ZonaPericoloConverter`. Hibernate failed on its `List<Punto>` field. The JPA annotations were removed.
-
-**Note:** the original Firebase project is no longer available. A service-account JSON with a self-generated key lets the app start locally, but push notifications fail until a real Firebase project is configured.
+Altre osservazioni sul riferimento: il checkout non usa `head_sha`, quindi può pubblicare un commit più recente di quello testato ([CICD.md](CICD.md)). Inoltre il suo Dockerfile usa `openjdk:17-slim`, un'immagine deprecata e non più aggiornata, e una JDK diversa dalla 21 usata in CI. Infine copia un jar costruito fuori dal container, quindi l'immagine dipende dall'ambiente di build.

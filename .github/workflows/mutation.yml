@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   pitest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Run PITest
 
     steps:
@@ -34,7 +34,7 @@ jobs:
 
       # Fails if the mutation score or the line coverage is below 80% (thresholds in pom.xml)
       - name: Run mutation tests with quality gates
-        run: mvn -B test-compile org.pitest:pitest-maven:mutationCoverage
+        run: ./mvnw -B test-compile org.pitest:pitest-maven:mutationCoverage
 
       - name: Upload mutation report
         uses: actions/upload-artifact@v4

@@ -293,7 +293,7 @@ public class GNFServiceImpl implements GNFService {
             if (numeroPostiVeicolo == null) {
                 throw new Exception("Specifica il numero di posti che hai nel tuo veicolo.");
             }
-            if (numeroPostiVeicolo > 8) {
+            if (numeroPostiVeicolo < 1 || numeroPostiVeicolo > 8) {
                 throw new Exception("Il numero di posti deve essere tra 1 e 8.");
             }
         } else {
@@ -343,7 +343,7 @@ public class GNFServiceImpl implements GNFService {
             if(numeroPostiVeicolo==null){
                 throw new Exception("Se hai un veicolo, devi specificare quanti posti hai.");
             }
-            if(numeroPostiVeicolo>8){
+            if(numeroPostiVeicolo < 1 || numeroPostiVeicolo > 8){
                 throw new Exception("Il numero di posti deve essere tra 1 e 8.");
             }
         }else{
