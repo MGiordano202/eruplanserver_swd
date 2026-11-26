@@ -23,7 +23,10 @@ public class NucleoFamiliareEntity {
 
     // --- NUOVI CAMPI (RF-GNF.07) ---
     private boolean hasVeicolo;
-    private int numeroPostiVeicolo;
+    private /*@ spec_public @*/ int numeroPostiVeicolo;
+
+    // Invariante JML: il numero di posti è compreso tra 0 (nessun veicolo) e 8
+    //@ public invariant 0 <= numeroPostiVeicolo && numeroPostiVeicolo <= 8;
 
     // Collegamento alla nuova tabella Residenza (Indirizzo)
     @OneToOne(cascade = CascadeType.ALL)
@@ -49,4 +52,14 @@ public class NucleoFamiliareEntity {
     // RF-GNF.09: Lista dei luoghi sicuri/appoggi
     @OneToMany(mappedBy = "nucleoFamiliare", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AppoggioEntity> appoggi;
+
+    // Setter scritto a mano (Lombok non lo genera): la precondizione JML protegge l'invariante sui posti
+    /*@ public normal_behavior
+      @   requires 0 <= numeroPostiVeicolo && numeroPostiVeicolo <= 8;
+      @   assignable this.numeroPostiVeicolo;
+      @   ensures this.numeroPostiVeicolo == numeroPostiVeicolo;
+      @*/
+    public void setNumeroPostiVeicolo(int numeroPostiVeicolo) {
+        this.numeroPostiVeicolo = numeroPostiVeicolo;
+    }
 }
