@@ -6,19 +6,70 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+  checks: write   # dorny/test-reporter publishes the test results as a check run
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    name: Run Unit Tests
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
+          cache: maven
 
-      - name: Run tests
-        run: mvn test
+      # Compiles, runs the tests, writes the JaCoCo report (phase test)
+      # and enforces the JaCoCo quality gates (phase verify)
+      - name: Run tests with coverage quality gates
+        run: ./mvnw -B verify
+
+      # Keeps the Surefire reports of every run, also when tests fail (if: always())
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: target/surefire-reports/
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: target/site/jacoco/
+
+      - name: Publish test report
+        uses: dorny/test-reporter@v2
+        if: success() || failure()
+        with:
+          name: Maven Test Results
+          path: target/surefire-reports/*.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        if: success() || failure()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./target/site/jacoco/jacoco.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Upload test results to Codecov
+        uses: codecov/codecov-action@v5
+        if: ${{ !cancelled() }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./target/surefire-reports/TEST-*.xml
+          report_type: test_results
+          fail_ci_if_error: false

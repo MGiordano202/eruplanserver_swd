@@ -1,5 +1,6 @@
 package it.unisa.eruplanserver.IS.Entity.GUM;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import it.unisa.eruplanserver.IS.Entity.GNF.NucleoFamiliareEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -32,6 +33,8 @@ public class UREntity {
     private String codiceFiscale;
 
     @Column(nullable = false)
+    // Mai inclusa nelle risposte JSON (l'hash non deve uscire dal server); accettata solo in ingresso
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
     @Column(name = "data_nascita")

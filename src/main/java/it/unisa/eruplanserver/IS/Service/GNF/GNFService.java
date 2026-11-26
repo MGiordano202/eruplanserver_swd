@@ -19,8 +19,9 @@ public interface GNFService {
     /**
      * RF-GNF.02: Accetta una richiesta di accesso pendente.
      * @param idRichiesta ID della richiesta da accettare
+     * @param cfUtente codice fiscale dell'utente loggato: deve essere il destinatario dell'invito
      */
-    void accettaInvito(Long idRichiesta) throws Exception;
+    void accettaInvito(Long idRichiesta, String cfUtente) throws Exception;
 
     /**
      * RF-GNF.03: Aggiunge un membro manuale (es. minore o anziano senza app) al nucleo.

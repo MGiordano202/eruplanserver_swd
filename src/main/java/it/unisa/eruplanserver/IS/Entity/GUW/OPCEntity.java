@@ -1,5 +1,6 @@
 package it.unisa.eruplanserver.IS.Entity.GUW;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,6 +21,8 @@ public class OPCEntity {
     private String codiceFiscale;
 
     @Column(nullable = false)
+    // Mai inclusa nelle risposte JSON (l'hash non deve uscire dal server); accettata solo in ingresso
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
     @Column(length = 30)

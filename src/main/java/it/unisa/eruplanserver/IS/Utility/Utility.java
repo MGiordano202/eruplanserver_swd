@@ -20,7 +20,7 @@ public class Utility {
         BigInteger no = new BigInteger(1, message);
         String cryptedString = no.toString(16);
 
-        while (cryptedString.length() < 32) {
+        while (cryptedString.length() < 64) {
             cryptedString = "0" + cryptedString;
         }
         return cryptedString;

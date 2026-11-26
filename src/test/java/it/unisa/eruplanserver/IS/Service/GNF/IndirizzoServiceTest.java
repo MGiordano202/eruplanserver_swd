@@ -3,16 +3,23 @@ package it.unisa.eruplanserver.IS.Service.GNF;
 import it.unisa.eruplanserver.IS.Entity.GNF.ResidenzaEntity;
 import it.unisa.eruplanserver.IS.Entity.GNF.NucleoFamiliareEntity;
 import it.unisa.eruplanserver.IS.Entity.GUM.UREntity;
+import it.unisa.eruplanserver.IS.Repository.GNF.AppoggioRepository;
+import it.unisa.eruplanserver.IS.Repository.GNF.MembroRepository;
 import it.unisa.eruplanserver.IS.Repository.GNF.ResidenzaRepository;
+import it.unisa.eruplanserver.IS.Repository.GNF.RichiestaAccessoRepository;
 import it.unisa.eruplanserver.IS.Repository.GNF.NucleoFamiliareRepository;
 import it.unisa.eruplanserver.IS.Repository.GUM.URRepository;
 import it.unisa.eruplanserver.IS.Exception.GNF.ValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,10 +38,14 @@ import static org.mockito.Mockito.*;
  * - TC_M_08_2: Via/Piazza troppo lunga (> 40 caratteri)
  * - TC_M_08_3: Via/Piazza valida
  */
+@ExtendWith(MockitoExtension.class)
 @DisplayName("Test Suite: Validazione Indirizzo - Via/Piazza")
 class IndirizzoServiceTest {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(IndirizzoServiceTest.class);
+
+    // Messaggio del controllo finale Validator.isIndirizzoValid (CAP, provincia, regione)
+    private static final String INDIRIZZO_NON_VALIDO = "Dati indirizzo non validi.";
 
     @Mock
     private ResidenzaRepository residenzaRepository;
@@ -48,9 +59,19 @@ class IndirizzoServiceTest {
     @Mock
     private NucleoFamiliareRepository nucleoFamiliareRepository;
 
+    // Le altre dipendenze di GNFServiceImpl: mockate anche se non usate, nessun campo resta null
+    @Mock
+    private RichiestaAccessoRepository richiestaRepository;
+
+    @Mock
+    private MembroRepository membroRepository;
+
+    @Mock
+    private AppoggioRepository appoggioRepository;
+
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        // I mock sono creati e chiusi da MockitoExtension per ogni test
         logger.info("========== INIZIO TEST SUITE VALIDAZIONE INDIRIZZO ==========");
                 // Prevent NPE: stub URRepository so creaNucleoFamiliare can proceed to address validation
                 when(urRepository.findByCodiceFiscale("CF123")).thenReturn(UREntity.builder().codiceFiscale("CF123").build());
@@ -409,9 +430,10 @@ class IndirizzoServiceTest {
                 .cap("8408")
                 .provincia("Napoli").regione("Campania").paese("Italia")
                 .build();
-        Exception ex = assertThrows(Exception.class, () ->
+        ValidationException ex = assertThrows(ValidationException.class, () ->
                 service.creaNucleoFamiliare("CF123", input, false, 0)
         );
+        assertEquals(INDIRIZZO_NON_VALIDO, ex.getMessage());
         logger.debug("Eccezione catturata: {}", ex.getMessage());
         verify(residenzaRepository, never()).save(any());
         logger.info("<<< TC_M_08_10 COMPLETATO");
@@ -432,9 +454,10 @@ class IndirizzoServiceTest {
                 .cap("840844")
                 .provincia("Napoli").regione("Campania").paese("Italia")
                 .build();
-        Exception ex = assertThrows(Exception.class, () ->
+        ValidationException ex = assertThrows(ValidationException.class, () ->
                 service.creaNucleoFamiliare("CF123", input, false, 0)
         );
+        assertEquals(INDIRIZZO_NON_VALIDO, ex.getMessage());
         verify(residenzaRepository, never()).save(any());
         logger.info("<<< TC_M_08_11 COMPLETATO");
     }
@@ -454,9 +477,10 @@ class IndirizzoServiceTest {
                 .cap("8408A")
                 .provincia("Napoli").regione("Campania").paese("Italia")
                 .build();
-        Exception ex = assertThrows(Exception.class, () ->
+        ValidationException ex = assertThrows(ValidationException.class, () ->
                 service.creaNucleoFamiliare("CF123", input, false, 0)
         );
+        assertEquals(INDIRIZZO_NON_VALIDO, ex.getMessage());
 
         verify(residenzaRepository, never()).save(any());
         logger.info("<<< TC_M_08_12 COMPLETATO");
@@ -477,9 +501,10 @@ class IndirizzoServiceTest {
                 .cap("8408@")
                 .provincia("Napoli").regione("Campania").paese("Italia")
                 .build();
-        Exception ex = assertThrows(Exception.class, () ->
+        ValidationException ex = assertThrows(ValidationException.class, () ->
                 service.creaNucleoFamiliare("CF123", input, false, 0)
         );
+        assertEquals(INDIRIZZO_NON_VALIDO, ex.getMessage());
 
         verify(residenzaRepository, never()).save(any());
         logger.info("<<< TC_M_08_13 COMPLETATO");
@@ -502,9 +527,10 @@ class IndirizzoServiceTest {
                 .provincia("S")
                 .regione("Campania").paese("Italia")
                 .build();
-        Exception ex = assertThrows(Exception.class, () ->
+        ValidationException ex = assertThrows(ValidationException.class, () ->
                 service.creaNucleoFamiliare("CF123", input, false, 0)
         );
+        assertEquals(INDIRIZZO_NON_VALIDO, ex.getMessage());
 
         verify(residenzaRepository, never()).save(any());
         logger.info("<<< TC_M_08_14 COMPLETATO");
@@ -524,9 +550,10 @@ class IndirizzoServiceTest {
                 .provincia(provinciaLunga)
                 .regione("Campania").paese("Italia")
                 .build();
-        Exception ex = assertThrows(Exception.class, () ->
+        ValidationException ex = assertThrows(ValidationException.class, () ->
                 service.creaNucleoFamiliare("CF123", input, false, 0)
         );
+        assertEquals(INDIRIZZO_NON_VALIDO, ex.getMessage());
 
         verify(residenzaRepository, never()).save(any());
         logger.info("<<< TC_M_08_15 COMPLETATO");
@@ -545,10 +572,162 @@ class IndirizzoServiceTest {
                 .provincia("Napoli1")
                 .regione("Campania").paese("Italia")
                 .build();
-        Exception ex = assertThrows(Exception.class, () ->
+        ValidationException ex = assertThrows(ValidationException.class, () ->
                 service.creaNucleoFamiliare("CF123", input, false, 0)
         );
+        assertEquals(INDIRIZZO_NON_VALIDO, ex.getMessage());
         verify(residenzaRepository, never()).save(any());
         logger.info("<<< TC_M_08_16 COMPLETATO");
+    }
+
+    // =================================================================================
+    //               SCENARI AGGIUNTIVI (non presenti nella Test Case Specification)
+    // =================================================================================
+
+    /** Residenza con tutti i campi validi: ogni test cambia solo il campo che vuole verificare. */
+    private ResidenzaEntity.ResidenzaEntityBuilder residenzaValida() {
+        return ResidenzaEntity.builder()
+                .viaPiazza("Via Roma").civico("10").comune("Napoli").cap("80100")
+                .provincia("Napoli").regione("Campania").paese("Italia");
+    }
+
+    private void assertRifiutata(ResidenzaEntity input, String messaggio) {
+        ValidationException ex = assertThrows(ValidationException.class, () ->
+                service.creaNucleoFamiliare("CF123", input, false, 0));
+        assertEquals(messaggio, ex.getMessage());
+        verify(residenzaRepository, never()).save(any());
+        verify(nucleoFamiliareRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Regione troppo corta, troppo lunga o con numeri: rifiutata")
+    void testRegioneNonValida() {
+        assertRifiutata(residenzaValida().regione("Lazi").build(), INDIRIZZO_NON_VALIDO);
+        assertRifiutata(residenzaValida().regione("C".repeat(26)).build(), INDIRIZZO_NON_VALIDO);
+        assertRifiutata(residenzaValida().regione("Campania1").build(), INDIRIZZO_NON_VALIDO);
+    }
+
+    @Test
+    @DisplayName("Paese mancante, troppo corto, troppo lungo o con numeri: messaggio specifico")
+    void testPaeseNonValido() {
+        String corto = "La creazione del nucleo familiare  non viene effettuata dato che il campo “Paese” è troppo corto.";
+        assertRifiutata(residenzaValida().paese(null).build(), corto);
+        assertRifiutata(residenzaValida().paese("UK").build(), corto);
+        assertRifiutata(residenzaValida().paese("I".repeat(41)).build(),
+                "La creazione del nucleo familiare  non viene effettuata dato che il campo “Paese” è troppo lungo.");
+        assertRifiutata(residenzaValida().paese("Italia1").build(),
+                "La creazione del nucleo familiare  non viene effettuata dato che il campo “Paese” contiene caratteri non validi.");
+    }
+
+    @Test
+    @DisplayName("Residenza assente: rifiutata")
+    void testResidenzaNull() {
+        ValidationException ex = assertThrows(ValidationException.class, () ->
+                service.creaNucleoFamiliare("CF123", null, false, 0));
+        assertEquals("é obbligatorio inserire i dati della residenza.", ex.getMessage());
+        verifyNoInteractions(residenzaRepository, nucleoFamiliareRepository);
+    }
+
+    @Test
+    @DisplayName("Utente inesistente: nucleo non creato")
+    void testUtenteInesistente() {
+        when(urRepository.findByCodiceFiscale("CF123")).thenReturn(null);
+
+        Exception ex = assertThrows(Exception.class, () ->
+                service.creaNucleoFamiliare("CF123", residenzaValida().build(), false, 0));
+        assertEquals("Utente non trovato con questo codice fiscale.", ex.getMessage());
+        verifyNoInteractions(residenzaRepository, nucleoFamiliareRepository);
+    }
+
+    @Test
+    @DisplayName("Utente già in un nucleo: nucleo non creato")
+    void testUtenteGiaInNucleo() {
+        UREntity giaInNucleo = UREntity.builder().codiceFiscale("CF123")
+                .nucleoFamiliare(NucleoFamiliareEntity.builder().id(7L).build()).build();
+        when(urRepository.findByCodiceFiscale("CF123")).thenReturn(giaInNucleo);
+
+        Exception ex = assertThrows(Exception.class, () ->
+                service.creaNucleoFamiliare("CF123", residenzaValida().build(), false, 0));
+        assertEquals("l'utente fa già parte di un nucleo familiare.", ex.getMessage());
+        verifyNoInteractions(residenzaRepository, nucleoFamiliareRepository);
+    }
+
+    @Test
+    @DisplayName("Veicolo senza numero di posti o con più di 8 posti: rifiutato")
+    void testVeicoloNonValido() {
+        Exception senzaPosti = assertThrows(Exception.class, () ->
+                service.creaNucleoFamiliare("CF123", residenzaValida().build(), true, null));
+        assertEquals("Specifica il numero di posti che hai nel tuo veicolo.", senzaPosti.getMessage());
+
+        Exception troppiPosti = assertThrows(Exception.class, () ->
+                service.creaNucleoFamiliare("CF123", residenzaValida().build(), true, 9));
+        assertEquals("Il numero di posti deve essere tra 1 e 8.", troppiPosti.getMessage());
+
+        verifyNoInteractions(residenzaRepository, nucleoFamiliareRepository);
+    }
+
+    @ParameterizedTest(name = "{0} posti")
+    @ValueSource(ints = {0, -1})
+    @DisplayName("Veicolo con meno di 1 posto: rifiutato")
+    void testVeicoloSenzaPostiValidi(int posti) {
+        Exception ex = assertThrows(Exception.class, () ->
+                service.creaNucleoFamiliare("CF123", residenzaValida().build(), true, posti));
+        assertEquals("Il numero di posti deve essere tra 1 e 8.", ex.getMessage());
+
+        verifyNoInteractions(residenzaRepository, nucleoFamiliareRepository);
+    }
+
+    @Test
+    @DisplayName("Veicolo con 1 posto (limite minimo): nucleo creato")
+    void testVeicoloUnPosto() throws Exception {
+        UREntity utente = UREntity.builder().codiceFiscale("CF123").build();
+        when(urRepository.findByCodiceFiscale("CF123")).thenReturn(utente);
+        when(residenzaRepository.save(any(ResidenzaEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(nucleoFamiliareRepository.save(any(NucleoFamiliareEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        NucleoFamiliareEntity nucleo = service.creaNucleoFamiliare("CF123", residenzaValida().build(), true, 1);
+
+        assertEquals(1, nucleo.getNumeroPostiVeicolo());
+    }
+
+    @Test
+    @DisplayName("Dati validi con veicolo (limiti massimi dei campi): crea il nucleo e lo collega all'utente")
+    void testCreazioneConVeicolo() throws Exception {
+        UREntity utente = UREntity.builder().codiceFiscale("CF123").build();
+        when(urRepository.findByCodiceFiscale("CF123")).thenReturn(utente);
+        when(residenzaRepository.save(any(ResidenzaEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(nucleoFamiliareRepository.save(any(NucleoFamiliareEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        ResidenzaEntity residenza = residenzaValida()
+                .viaPiazza("V".repeat(40)).civico("123456").comune("N".repeat(40))
+                .provincia("P".repeat(20)).regione("R".repeat(25)).paese("I".repeat(40))
+                .build();
+
+        NucleoFamiliareEntity nucleo = service.creaNucleoFamiliare("CF123", residenza, true, 8);
+
+        assertAll(
+                () -> assertSame(utente, nucleo.getAdmin()),
+                () -> assertSame(residenza, nucleo.getResidenza()),
+                () -> assertTrue(nucleo.isHasVeicolo()),
+                () -> assertEquals(8, nucleo.getNumeroPostiVeicolo()),
+                () -> assertSame(nucleo, utente.getNucleoFamiliare(), "l'utente deve entrare nel nucleo creato"));
+        verify(urRepository).save(utente);
+    }
+
+    @Test
+    @DisplayName("Dati validi senza veicolo: crea il nucleo senza posti veicolo")
+    void testCreazioneSenzaVeicolo() throws Exception {
+        UREntity utente = UREntity.builder().codiceFiscale("CF123").build();
+        when(urRepository.findByCodiceFiscale("CF123")).thenReturn(utente);
+        when(residenzaRepository.save(any(ResidenzaEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(nucleoFamiliareRepository.save(any(NucleoFamiliareEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        NucleoFamiliareEntity nucleo = service.creaNucleoFamiliare("CF123", residenzaValida().build(), false, null);
+
+        ArgumentCaptor<NucleoFamiliareEntity> salvato = ArgumentCaptor.forClass(NucleoFamiliareEntity.class);
+        verify(nucleoFamiliareRepository).save(salvato.capture());
+        assertAll(
+                () -> assertFalse(salvato.getValue().isHasVeicolo()),
+                () -> assertEquals(0, salvato.getValue().getNumeroPostiVeicolo()),
+                () -> assertSame(nucleo, utente.getNucleoFamiliare()));
     }
 }

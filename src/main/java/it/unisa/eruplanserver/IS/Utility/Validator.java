@@ -5,6 +5,7 @@ import it.unisa.eruplanserver.IS.Entity.GPE.ZonaSicura;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.ResolverStyle;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -55,6 +56,9 @@ public class Validator {
     // Nuovo pattern per TD-M-20: 16 caratteri, solo A-Za-z e cifre 1-9 (ZERO ESCLUSO)
     private static final String CODICE_FISCALE_CHARS_REGEX = "^[A-Za-z1-9]{16}$";
     private static final Pattern CODICE_FISCALE_CHARS_PATTERN = Pattern.compile(CODICE_FISCALE_CHARS_REGEX);
+
+    private static final DateTimeFormatter DATA_NASCITA_FORMATTER =
+            DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(ResolverStyle.STRICT);
 
     /*
      * METODI DI VALIDAZIONE
@@ -123,8 +127,9 @@ public class Validator {
             return false;
         }
         try {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-            formatter.parse(data);
+            // STRICT rifiuta le date inesistenti (31/02, 29/02 negli anni non bisestili)
+            // invece di spostarle sull'ultimo giorno valido del mese; con STRICT l'anno va scritto "uuuu"
+            LocalDate.parse(data, DATA_NASCITA_FORMATTER);
             return true;
         } catch (Exception e) {
             return false;

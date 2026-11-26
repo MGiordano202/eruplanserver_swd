@@ -35,10 +35,8 @@ public class URServiceImpl implements URService {
             throw new URNotFoundException("ERRORE - UTENTE NON TROVATO.");
         }
 
-        // Verifica Password
-        String passwordHash = Utility.encrypt(password);
-
-        if (!passwordHash.equals(cittadino.getPassword())) {
+        // Verifica Password (null = campo assente nella richiesta: è una password errata, non un crash)
+        if (password == null || !Utility.encrypt(password).equals(cittadino.getPassword())) {
             throw new LoginPasswordsMismatchException("ERRORE - PASSWORD ERRATA.");
         }
     }

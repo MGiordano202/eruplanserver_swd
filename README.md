@@ -1,5 +1,9 @@
 # Eruplan Server
 
+[![CI](https://github.com/MGiordano202/eruplanserver_swd/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/MGiordano202/eruplanserver_swd/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/MGiordano202/eruplanserver_swd/branch/main/graph/badge.svg)](https://codecov.io/gh/MGiordano202/eruplanserver_swd)
+[![Mutation Testing](https://github.com/MGiordano202/eruplanserver_swd/actions/workflows/mutation.yml/badge.svg?branch=main)](https://github.com/MGiordano202/eruplanserver_swd/actions/workflows/mutation.yml)
+
 <p align="center"><img src='https://i.postimg.cc/G3YX9jYR/logo-eruplan.png' alt="Eruplan Logo" height="400"></p>
 
 
@@ -68,17 +72,19 @@ The server is a Java application managed by Maven.
     mvn spring-boot:run
 
 ### API Endpoints Structure
-The application defines a global prefix for all endpoints.
-* **Base URL:** `http://localhost:8080/utenti/`
+Each module exposes its endpoints under its own path, directly on the server root.
+* **Base URL:** `http://localhost:8080/`
 
 **Key Routes:**
-* **Mobile Users:** `/utenti/gestoreUtentiMobile/login`, `/utenti/gestoreUtentiMobile/registra`
-* **Web Operators:** `/utenti/gestoreUtentiWeb/login`
-* **Family Management:** `/utenti/gestoreNucleo/membri`, `/utenti/gestoreNucleo/invita`
-* **Plans:** `/utenti/gestorePiani/genera`
+* **Mobile Users:** `/gestoreUtentiMobile/login`, `/gestoreUtentiMobile/registra`
+* **Web Operators:** `/gestoreUtentiWeb/login`
+* **Family Management:** `/gestoreNucleo/membri`, `/gestoreNucleo/invita`
+* **Plans:** `/gestorePiani/genera`
+* **History:** `/gestoreStorico/eruzioni`, `/gestoreStorico/piani/{idPiano}`
+* **Health check:** `/utenti/` (returns a greeting) and `/actuator/health`
 
 ## ☁️ Deployment
-The project is configured for deployment on **Azure Web Apps** via GitHub Actions workflow. The configuration file is located at `.github/workflows/main_eruplanserver.yml`.
+After every successful CI run on `main`, the `.github/workflows/docker-build.yml` workflow builds the Docker image and publishes it to Docker Hub (see [Docker.md](Docker.md)). The previous Azure Web Apps workflow was removed because the original Azure environment is no longer available (see [CICD.md](CICD.md)).
 
 ## 🛠 Built With
 - [Java 21](https://www.oracle.com/java/) - Core language.
@@ -93,6 +99,18 @@ The project is configured for deployment on **Azure Web Apps** via GitHub Action
 ## 🔗 Related resources
 - [Eruplan Web Client](https://github.com/T-R-M-V-spin-off/eruplanwebclient) - The official web frontend.
 - [Eruplan Mobile Client](https://github.com/T-R-M-V-spin-off/eruplanmobileclient) - The official mobile app.
+
+## 🧪 Testing
+The test suite (JUnit 6 and Mockito 5) runs with `mvn test` and needs no database or credentials: unit tests mock every external dependency, web tests check the HTTP layer with MockMvc and persistence tests use an in-memory H2 database. The strategy, the FIRST principles applied and the defects found are described in [testing.md](testing.md).
+
+## 📊 Coverage
+Code coverage is measured with JaCoCo. `mvn clean verify` runs the tests, writes the report to `target/site/jacoco/index.html` and fails if a package goes below 80% line, 75% branch or 100% class coverage. Configuration, results and improvement plan are in [coverage.md](coverage.md).
+
+## 🧬 Mutation Testing
+Mutation testing is done with PITest. `mvn test-compile org.pitest:pitest-maven:mutationCoverage` injects faults into services, controllers and utilities, writes the report to `target/pit-reports/index.html` and fails if the mutation score or line coverage goes below 80%. Configuration, results and improvement plan are in [mutation.md](mutation.md).
+
+## 🐳 Docker
+The application and its MySQL database can be run with Docker Compose (`docker compose up -d --build`). Images, secrets management, health checks and the anti-patterns avoided are described in [Docker.md](Docker.md).
 
 ## 🔁 CI/CD
 The CI/CD pipeline is documented in [CICD.md](CICD.md).

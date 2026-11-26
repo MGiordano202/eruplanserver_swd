@@ -1,5 +1,6 @@
 package it.unisa.eruplanserver.IS.Control.GPE;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.unisa.eruplanserver.IS.Entity.GPE.ZonaPericolo;
 import it.unisa.eruplanserver.IS.Entity.GPE.ZonaSicura;
 import it.unisa.eruplanserver.IS.Exception.GPE.GPEException;
@@ -25,6 +26,9 @@ public class GPEControl {
 
     private static final Logger logger = LoggerFactory.getLogger(GPEControl.class);
 
+    // ObjectMapper è thread-safe: una sola istanza per tutte le richieste
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     /**
      * Gestisce la richiesta di generazione di un piano di evacuazione.
      */
@@ -43,11 +47,10 @@ public class GPEControl {
             JSONObject json = (JSONObject) parser.parse(body);
             String nome = (String) json.get("nome");
 
-            Object zonaPericoloObj = json.get("zonaPericolo");
-            ZonaPericolo zonaPericolo = (zonaPericoloObj != null) ? (ZonaPericolo)zonaPericoloObj : null;
-
-            Object zoneSicureObj = json.get("zoneSicure");
-            ZonaSicura zoneSicure = (zoneSicureObj != null) ? (ZonaSicura)zoneSicureObj : null;
+            // json-simple restituisce le zone come JSONObject (una Map), non come ZonaPericolo/ZonaSicura:
+            // un cast diretto lancia ClassCastException, quindi le convertiamo con Jackson
+            ZonaPericolo zonaPericolo = converti(json.get("zonaPericolo"), ZonaPericolo.class);
+            ZonaSicura zoneSicure = converti(json.get("zoneSicure"), ZonaSicura.class);
             gpeService.generaPiano(nome, zonaPericolo, zoneSicure);
 
             response.setStatus(HttpServletResponse.SC_OK);
@@ -57,8 +60,16 @@ public class GPEControl {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Errore nel parsing del JSON.");
         } catch (GPEException e) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+        } catch (IllegalArgumentException e) {
+            // Zone presenti ma con una struttura che non corrisponde a ZonaPericolo/ZonaSicura
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Formato delle zone non valido.");
         } catch (Exception e) {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Errore generico del server.");
         }
+    }
+
+    /** Converte un valore letto da json-simple nell'oggetto richiesto; null resta null. */
+    private static <T> T converti(Object valore, Class<T> tipo) {
+        return (valore == null) ? null : OBJECT_MAPPER.convertValue(valore, tipo);
     }
 }
