@@ -109,6 +109,9 @@ Code coverage is measured with JaCoCo. `mvn clean verify` runs the tests, writes
 ## 🧬 Mutation Testing
 Mutation testing is done with PITest. `mvn test-compile org.pitest:pitest-maven:mutationCoverage` injects faults into services, controllers and utilities, writes the report to `target/pit-reports/index.html` and fails if the mutation score or line coverage goes below 80%. Configuration, results and improvement plan are in [mutation.md](mutation.md).
 
+## 📐 Formal Verification (JML)
+Validators, utilities and some entities carry JML contracts (preconditions, postconditions, invariants), checked with OpenJML. `scripts/jml/verify.sh` delomboks the sources, runs the static checker (ESC) and the runtime assertion checker (RAC), and writes the logs to `target/jml/`. Specifications and results are in [verification.md](verification.md).
+
 ## 🐳 Docker
 The application and its MySQL database can be run with Docker Compose (`docker compose up -d --build`). Images, secrets management, health checks and the anti-patterns avoided are described in [Docker.md](Docker.md).
 

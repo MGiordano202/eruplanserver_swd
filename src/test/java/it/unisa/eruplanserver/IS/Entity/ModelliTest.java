@@ -3,6 +3,7 @@ package it.unisa.eruplanserver.IS.Entity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.unisa.eruplanserver.IS.Entity.GNF.AggiornaVeicoloRequest;
 import it.unisa.eruplanserver.IS.Entity.GNF.CreazioneNucleoRequest;
+import it.unisa.eruplanserver.IS.Entity.GNF.NucleoFamiliareEntity;
 import it.unisa.eruplanserver.IS.Entity.GNF.ResidenzaEntity;
 import it.unisa.eruplanserver.IS.Entity.GPE.Punto;
 import it.unisa.eruplanserver.IS.Exception.GNF.ValidationException;
@@ -101,6 +102,30 @@ class ModelliTest {
             Set<Punto> punti = new HashSet<>(List.of(new Punto(1, 2), new Punto(1, 2), new Punto(2, 1)));
 
             assertEquals(2, punti.size());
+        }
+    }
+
+    @Nested
+    @DisplayName("NucleoFamiliareEntity: il builder accetta solo da 0 a 8 posti veicolo")
+    class NucleoPostiVeicolo {
+
+        @Test
+        @DisplayName("0 e 8 posti (estremi dell'intervallo): nucleo costruito")
+        void estremiAmmessi() {
+            NucleoFamiliareEntity senzaPosti = NucleoFamiliareEntity.builder().hasVeicolo(false).numeroPostiVeicolo(0).build();
+            NucleoFamiliareEntity pieno = NucleoFamiliareEntity.builder().hasVeicolo(true).numeroPostiVeicolo(8).build();
+
+            assertEquals(0, senzaPosti.getNumeroPostiVeicolo());
+            assertEquals(8, pieno.getNumeroPostiVeicolo());
+        }
+
+        @Test
+        @DisplayName("-1 e 9 posti (fuori intervallo): IllegalArgumentException")
+        void fuoriIntervallo() {
+            assertThrows(IllegalArgumentException.class,
+                    () -> NucleoFamiliareEntity.builder().hasVeicolo(true).numeroPostiVeicolo(-1).build());
+            assertThrows(IllegalArgumentException.class,
+                    () -> NucleoFamiliareEntity.builder().hasVeicolo(true).numeroPostiVeicolo(9).build());
         }
     }
 
