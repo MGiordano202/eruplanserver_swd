@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * in login e registrazione (GUM, GUW).
  */
 @DisplayName("Utility.encrypt - hash SHA-256 delle password")
-class UtilityTest {
+public class UtilityTest {
 
     @ParameterizedTest(name = "encrypt(\"{0}\") = {1}")
     @CsvSource(value = {
@@ -30,7 +30,7 @@ class UtilityTest {
 
     @Test
     @DisplayName("È deterministico: stesso input, stesso hash")
-    void encrypt_deterministico() throws NoSuchAlgorithmException {
+    public void encrypt_deterministico() throws NoSuchAlgorithmException {
         assertEquals(Utility.encrypt("Password1"), Utility.encrypt("Password1"));
     }
 
@@ -49,7 +49,7 @@ class UtilityTest {
 
     @Test
     @DisplayName("L'hash è sempre di 64 caratteri esadecimali, anche quando inizia con zeri")
-    void encrypt_lunghezzaFissa() {
+    public void encrypt_lunghezzaFissa() {
         // SHA-256 = 32 byte = 64 cifre esadecimali. Circa 1 hash su 16 inizia con '0':
         // su 200 input deterministici qualcuno inizia sicuramente con zero.
         IntStream.range(0, 200).mapToObj(i -> "input" + i).forEach(input -> {

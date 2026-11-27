@@ -117,3 +117,5 @@ The application and its MySQL database can be run with Docker Compose (`docker c
 
 ## 🔁 CI/CD
 The CI/CD pipeline is documented in [CICD.md](CICD.md).
+## ⏱️ Microbenchmarking
+Microbenchmarks (JMH with the AMBER extension) are built with `./mvnw -Pbenchmarks package` and run with `java -jar target/benchmarks.jar`. Methods, configuration, results and bottlenecks are in [benchmarking.md](benchmarking.md).

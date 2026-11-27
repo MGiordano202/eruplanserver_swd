@@ -348,4 +348,123 @@
             </plugin>
         </plugins>
     </build>
+
+    <!--
+        Microbenchmark (JMH + AMBER), attivi solo con "-Pbenchmarks":
+          ./mvnw -Pbenchmarks package
+          java -jar target/benchmarks.jar
+        La build normale (test, CI, Docker) non cambia: i benchmark stanno in src/jmh/java,
+        il jar dell'applicazione resta quello di Spring Boot e quello dei benchmark è target/benchmarks.jar.
+    -->
+    <profiles>
+        <profile>
+            <id>benchmarks</id>
+            <properties>
+                <jmh.version>1.37</jmh.version>
+                <!-- jar di AMBER installato in locale con install:install-file (vedi benchmarking.md) -->
+                <amber.version>1.37-extended</amber.version>
+                <!-- Il jar Spring Boot non serve: si costruisce solo target/benchmarks.jar -->
+                <spring-boot.repackage.skip>true</spring-boot.repackage.skip>
+                <skipTests>true</skipTests>
+            </properties>
+            <dependencies>
+                <!-- AMBER: JMH 1.37 esteso con @DynamicHalt -->
+                <dependency>
+                    <groupId>org.openjdk.jmh</groupId>
+                    <artifactId>jmh-core</artifactId>
+                    <version>${amber.version}</version>
+                </dependency>
+                <!-- Processore delle annotazioni JMH; escluso il jmh-core originale per usare quello di AMBER -->
+                <dependency>
+                    <groupId>org.openjdk.jmh</groupId>
+                    <artifactId>jmh-generator-annprocess</artifactId>
+                    <version>${jmh.version}</version>
+                    <scope>provided</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.openjdk.jmh</groupId>
+                            <artifactId>jmh-core</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+                <!-- Servono ai benchmark generati da JU2JMH: asserzioni JUnit 5 e API di JU2JMH (basata su JUnit 4) -->
+                <dependency>
+                    <groupId>org.junit.jupiter</groupId>
+                    <artifactId>junit-jupiter-api</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.junit.jupiter</groupId>
+                    <artifactId>junit-jupiter-params</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>junit</groupId>
+                    <artifactId>junit</artifactId>
+                    <version>4.13.2</version>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <!-- Aggiunge src/jmh/java ai sorgenti solo in questo profilo -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>3.6.0</version>
+                        <executions>
+                            <execution>
+                                <id>add-jmh-sources</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/jmh/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!--
+                        Il processore JMH viene trovato sul classpath come quello di Lombok:
+                        un elenco annotationProcessorPaths con il solo JMH (come nella guida) disattiverebbe Lombok.
+                    -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-shade-plugin</artifactId>
+                        <version>3.6.0</version>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>shade</goal>
+                                </goals>
+                                <configuration>
+                                    <outputFile>${project.build.directory}/benchmarks.jar</outputFile>
+                                    <createDependencyReducedPom>false</createDependencyReducedPom>
+                                    <transformers combine.self="override">
+                                        <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                            <mainClass>org.openjdk.jmh.Main</mainClass>
+                                        </transformer>
+                                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                    </transformers>
+                                    <filters combine.self="override">
+                                        <!-- Le firme dei jar originali non valgono più nel jar unico -->
+                                        <filter>
+                                            <artifact>*:*</artifact>
+                                            <excludes>
+                                                <exclude>META-INF/*.SF</exclude>
+                                                <exclude>META-INF/*.DSA</exclude>
+                                                <exclude>META-INF/*.RSA</exclude>
+                                                <exclude>module-info.class</exclude>
+                                            </excludes>
+                                        </filter>
+                                    </filters>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
