@@ -11,7 +11,6 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @Builder
 @Entity
 @Table(name = "nucleo_familiare")
@@ -52,6 +51,31 @@ public class NucleoFamiliareEntity {
     // RF-GNF.09: Lista dei luoghi sicuri/appoggi
     @OneToMany(mappedBy = "nucleoFamiliare", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AppoggioEntity> appoggi;
+
+    // Costruttore con tutti i campi scritto a mano al posto di @AllArgsConstructor: è quello usato da @Builder.
+    // Quello generato da Lombok accettava qualsiasi numero di posti e violava l'invariante (trovato da ESC e RAC).
+    /*@ public normal_behavior
+      @   requires 0 <= numeroPostiVeicolo && numeroPostiVeicolo <= 8;
+      @   ensures this.numeroPostiVeicolo == numeroPostiVeicolo;
+      @ also public exceptional_behavior
+      @   requires numeroPostiVeicolo < 0 || numeroPostiVeicolo > 8;
+      @   signals_only IllegalArgumentException;
+      @*/
+    public NucleoFamiliareEntity(Long id, boolean hasVeicolo, int numeroPostiVeicolo, ResidenzaEntity residenza,
+                                 UREntity admin, List<UREntity> membriRegistrati,
+                                 List<MembroEntity> membriManuali, List<AppoggioEntity> appoggi) {
+        if (numeroPostiVeicolo < 0 || numeroPostiVeicolo > 8) {
+            throw new IllegalArgumentException("Il numero di posti del veicolo deve essere tra 0 e 8.");
+        }
+        this.id = id;
+        this.hasVeicolo = hasVeicolo;
+        this.numeroPostiVeicolo = numeroPostiVeicolo;
+        this.residenza = residenza;
+        this.admin = admin;
+        this.membriRegistrati = membriRegistrati;
+        this.membriManuali = membriManuali;
+        this.appoggi = appoggi;
+    }
 
     // Setter scritto a mano (Lombok non lo genera): la precondizione JML protegge l'invariante sui posti
     /*@ public normal_behavior

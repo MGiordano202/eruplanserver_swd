@@ -24,8 +24,18 @@ public class Utility {
         // Charset esplicito: stesso risultato del default UTF-8 di Java 18+, ma indipendente dalla piattaforma
         // (getBytes() senza argomenti manda anche in crash il RAC di OpenJML 21.0.29)
         byte[] message = md.digest(string.getBytes(StandardCharsets.UTF_8));
+        // La specifica OpenJML di MessageDigest non garantisce un risultato non nullo, e quella di
+        // new BigInteger(1, bytes) vuole almeno un byte diverso da zero: ipotesi vere per un hash SHA-256
+        //@ assume message != null && (\exists int i; 0 <= i && i < message.length; message[i] != 0);
         BigInteger no = new BigInteger(1, message);
-        String cryptedString = no.toString(16);
+        String cryptedString;
+        try {
+            cryptedString = no.toString(16);
+        } catch (RuntimeException e) {
+            // La specifica di BigInteger.toString(int) non esclude eccezioni: ipotesi che non ne lanci
+            //@ assume false;
+            throw e;
+        }
 
         //@ maintaining cryptedString != null;
         //@ decreasing 64 - cryptedString.length();

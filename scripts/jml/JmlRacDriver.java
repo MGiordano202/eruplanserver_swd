@@ -33,8 +33,22 @@ public class JmlRacDriver {
             check(Validator.isTroppoCorto(null, 2) && Validator.isTroppoCorto("A", 2));
             check(!Validator.isTroppoLungo("Mario", 30) && Validator.isTroppoLungo("x".repeat(31), 30));
             check(Validator.isCodiceFiscaleLengthValid("RSSMRA80A01H703X"));
-            check(!Validator.isNomeValid(null) && !Validator.isCodiceFiscaleValid(""));
             check(Validator.isAssistenzaDefinita(true) && !Validator.isMinorenneDefinito(null));
+        });
+        ok("Validator: regex e data con input null o vuoto restituiscono false", () -> {
+            check(!Validator.isNomeValid(null) && !Validator.isNomeValid(""));
+            check(!Validator.isCognomeValid(null) && !Validator.isCognomeValid(""));
+            check(!Validator.isCodiceFiscaleValid(null) && !Validator.isCodiceFiscaleValid(""));
+            check(!Validator.isSessoValid(null) && !Validator.isSessoValid(""));
+            check(!Validator.isPasswordValid(null) && !Validator.isPasswordValid(""));
+            check(!Validator.isNomePianoValid(null));
+            check(!Validator.isDataNascitaValid(null));
+        });
+        ok("Validator: regex e data con input validi", () -> {
+            check(Validator.isNomeValid("Mario") && Validator.isCognomeValid("Rossi"));
+            check(Validator.isCodiceFiscaleValid("RSSMRA80A01H703X") && Validator.isSessoValid("M"));
+            check(Validator.isPasswordValid("Password1") && Validator.isNomePianoValid("Piano Vesuvio"));
+            check(Validator.isDataNascitaValid(java.time.LocalDate.of(1980, 1, 1)));
         });
         ok("Validator.creaZoneSicure: raggi ai bordi 50 e 250", () ->
                 Validator.creaZoneSicure(List.of(new ZonaSicura(a, 50), new ZonaSicura(b, 250))));
@@ -53,14 +67,16 @@ public class JmlRacDriver {
             n.setNumeroPostiVeicolo(8);
             check(n.getNumeroPostiVeicolo() == 8);
         });
+        ok("NucleoFamiliareEntity: il builder rifiuta 9 e -1 posti (exceptional_behavior)", () -> {
+            expectIae(() -> NucleoFamiliareEntity.builder().hasVeicolo(true).numeroPostiVeicolo(9).build());
+            expectIae(() -> NucleoFamiliareEntity.builder().hasVeicolo(true).numeroPostiVeicolo(-1).build());
+        });
 
         // ---------- Scenari fuori contratto: RAC deve segnalare la violazione ----------
         violation("Validator.checkConnessione con lista vuota (precondizione)", () ->
                 Validator.checkConnessione(List.of()));
         violation("NucleoFamiliareEntity.setNumeroPostiVeicolo(-1) (precondizione + invariante)", () ->
                 new NucleoFamiliareEntity().setNumeroPostiVeicolo(-1));
-        violation("NucleoFamiliareEntity.builder() con 9 posti (invariante)", () ->
-                NucleoFamiliareEntity.builder().hasVeicolo(true).numeroPostiVeicolo(9).build());
         violation("Utility.encrypt(null) (precondizione)", () -> Utility.encrypt(null));
 
         System.out.println("Driver RAC terminato.");

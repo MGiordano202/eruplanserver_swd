@@ -1,67 +1,63 @@
-# Verifica formale con JML
+# Verifica JML con OpenJML
 
-Contratti JML su validazioni, utility ed entity, verificati con **OpenJML 21.0.29** in modalità ESC (statica) e RAC (runtime).
+## 1. Setup della verifica
 
-## Setup
+OpenJML 21.0.29 è installato in `C:\openjml` e nel `PATH`. Il progetto usa Lombok, che OpenJML non vede: i sorgenti vengono prima delombokati in `target/delombok`, usato come sourcepath, con il classpath di Maven.
 
-- OpenJML in `C:\openjml`, nel `PATH`; Z3 incluso nella distribuzione.
-- Lombok genera codice in compilazione: i sorgenti vengono delombokati in `target/delombok` e OpenJML lavora su quella copia.
-- `scripts/jml/verify.sh` (`esc`, `rac` o entrambi) rende la verifica riproducibile con un solo comando: classpath Maven, delombok, ESC, RAC. I log vanno in `target/jml/`.
-- ESC dimostra un metodo alla volta su un solo thread: lo script divide le classi in 7 gruppi eseguiti in parallelo, con un timeout di 30 s per query. Una verifica completa richiede circa 17 minuti.
-- Entity con `--nullable-by-default` (campi e getter Lombok possono essere null); `Validator` e `Utility` col default JML non-null e parametri nullabili annotati `/*@ nullable @*/`.
-- `scripts/jml/JmlRacDriver.java`: RAC controlla solo il codice eseguito, quindi il driver esercita i metodi annotati con casi validi, casi limite e chiamate fuori contratto.
+Per ripetere la verifica abbiamo scritto `scripts/jml/verify.sh [esc|rac]`, che esegue delombok, ESC e RAC e salva i log in `target/jml/`. L'ESC gira in 7 gruppi paralleli con un timeout 30s per query e la verifica completa dura circa 8 minuti. Poiché il RAC controlla solo il codice eseguito, `scripts/jml/JmlRacDriver.java` chiama i metodi annotati con casi validi, casi limite e chiamate fuori contratto.
 
-## Specifiche aggiunte
+## 2. Specifiche aggiunte
 
-| Classe | Specifiche |
-| :--- | :--- |
-| `NucleoFamiliareEntity` | `invariant 0 <= numeroPostiVeicolo <= 8`; setter con `requires 0..8`, `assignable`, `ensures` |
-| `Punto` | `ensures` sui costruttori; `equals` pure, riflessivo, `false` con null o altro tipo |
-| `ZonaSicura` | `ensures` sui costruttori; `getRaggio` pure |
-| `Validator` | contratti esatti `\result <==> ...` per `isTroppoCorto`, `isTroppoLungo`, `isCodiceFiscaleLengthValid`, `isAssistenzaDefinita`, `isMinorenneDefinito`; `null/vuoto ==> false` per i metodi con regex; `normal_behavior` ed `exceptional_behavior` per `creaZoneSicure` (raggio 50–250) e `creaZonaPericolo` (≥ 4 punti); `requires` lista non vuota per `checkConnessione` |
-| `Utility.encrypt` | `requires string != null`, `ensures \result.length() >= 64`, invariante e variante di ciclo |
+| Classe | Tipo | Specifica |
+|---|---|---|
+| `NucleoFamiliareEntity` | invariante | `numeroPostiVeicolo` tra 0 e 8 |
+| | pre/postcondizione | costruttore usato da `@Builder`: posti tra 0 e 8, altrimenti `IllegalArgumentException` |
+| | pre/postcondizione | `setNumeroPostiVeicolo`: valore tra 0 e 8, poi salvato nel campo |
+| `Punto`, `ZonaSicura` | postcondizione | costruttori e `getRaggio` conservano i valori ricevuti; `equals` riflessivo e falso con `null` |
+| `Validator` | postcondizione | 5 helper (`isTroppoCorto`, `isTroppoLungo`, …): risultato esatto |
+| | postcondizione | 7 validazioni con regex o data: `false` con input `null` o vuoto |
+| | pre/postcondizione | `creaZoneSicure`: raggi tra 50 e 250 m, altrimenti `IllegalArgumentException` |
+| | pre/postcondizione | `creaZonaPericolo`: `IllegalArgumentException` con meno di 4 punti |
+| | precondizione | `checkConnessione`: lista non vuota e senza `null` |
+| `Utility.encrypt` | pre/postcondizione | password non `null`; hash di almeno 64 caratteri |
 
-## Risultati ESC
+## 3. Risultati ESC
 
-**Dimostrate:** costruttori ed `equals` di `Punto`, costruttori e `getRaggio` di `ZonaSicura`, i 5 helper di `Validator` con contratto esatto, `checkConnessione`, setter e costruttore vuoto di `NucleoFamiliareEntity`.
+### Segnalazioni
 
-Problemi trovati e risolti:
-
-| Segnalazione | Causa | Soluzione |
-| :--- | :--- | :--- |
-| `ensures this.lat == lat` falsa | con `NaN`, `==` è falso | postcondizione con il caso `Double.isNaN` |
-| campi non usabili nelle spec | privati / package-private | `spec_public` |
-| 14 null-dereference ripetute | costanti `Pattern` viste come nullabili | `non_null` sulle costanti statiche |
+| Segnalazione | Causa | Cosa abbiamo fatto |
+|---|---|---|
+| campi non usabili nelle specifiche | campi privati | `spec_public` |
+| costruttori di `Punto` e `ZonaSicura` | con `NaN` il confronto `==` è falso | specifica corretta per `NaN` |
+| 14 possibili `null` in ogni metodo di `Validator` | costanti `Pattern` viste come nullabili | costanti `non_null` |
 | underflow su `punti.size() - 1` | senza `assignable` la lista poteva cambiare | `assignable \nothing` |
-| invarianti di ciclo in `creaZoneSicure` | iteratore del for-each non modellato | getter con contratto, ciclo con indice |
+| invariante di `NucleoFamiliareEntity` | **difetto reale**: `@Builder` accettava qualsiasi numero di posti | costruttore che rifiuta valori fuori range |
+| regex, data di nascita, `encrypt` | librerie senza specifiche (`Matcher`, `LocalDate`) o incomplete (`MessageDigest`, `BigInteger`) | `assume` |
+| `toString` generati da Lombok | codice senza specifiche, fuori ambito | esclusi (`--exclude toString`) |
+| `encrypt` | specifica OpenJML di `BigInteger.toString(radix)` incoerente (segnata `FIXME`) | non risolvibile con `assume` |
+| `creaZoneSicure`, `creaZonaPericolo` | il modello OpenJML di `List` non permette di dimostrare nemmeno fatti banali come `zone.size() >= 0`, né di ritrovare la precondizione sugli elementi dopo una chiamata a `size()`, è un limite delle specifiche di libreria | non risolvibile con ESC |
 
-Non dimostrate:
+Le eccezioni delle librerie sono escluse con un `catch` che contiene `//@ assume false` e rilancia: a runtime non cambia nulla.
 
-| Specifica | Perché | Copertura |
-| :--- | :--- | :--- |
-| invariante di `NucleoFamiliareEntity` nel costruttore Lombok | **difetto reale**: il costruttore usato da `@Builder` non controlla i posti e ne accetta 9 | controlli 1–8 in `GNFServiceImpl`; confermato dal RAC |
-| regex di `Validator`, `isDataNascitaValid`, `encrypt` | **limite delle librerie**: le specifiche OpenJML di `Pattern`, `LocalDate`, `BigInteger` ammettono eccezioni; renderle dimostrabili richiederebbe `assume` | RAC e test JUnit |
-| `creaZoneSicure`, `creaZonaPericolo` | **limite del dimostratore**: i quantificatori su `List.get(i)` non si chiudono entro il timeout | RAC: bordi 50/250, poligoni aperti e chiusi |
-| `toString` dei builder di `ResidenzaEntity` e `UREntity` | codice Lombok di altre classi | fuori ambito |
+| Dove | Ipotesi |
+|---|---|
+| `corrisponde` (regex) | `matches()` su una regex compilata non lancia eccezioni |
+| 5 validazioni con regex | se `compareTo("") != 0`, la stringa non è vuota |
+| `isDataNascitaValid` | `LocalDate.now()` e `isBefore()` non lanciano eccezioni |
+| `encrypt` | l'hash non è `null` e ha un byte non nullo; `toString(16)` non lancia eccezioni |
 
-## Risultati RAC
+## 4. Risultati RAC
 
-Gli **8 scenari validi** passano senza violazioni: casi limite 50/250, poligono chiuso, posti 0 e 8, hash di 64 caratteri, eccezioni previste. Le **4 chiamate fuori contratto** sono tutte rilevate:
+Gli 11 scenari validi (casi limite, le 7 validazioni con input nulli, vuoti e validi, il builder con 9 e -1 posti) passano senza violazioni, e le 3 chiamate fuori contratto vengono tutte rilevate: `checkConnessione(List.of())` e `encrypt(null)` violano la precondizione, `setNumeroPostiVeicolo(-1)` precondizione e invariante. Per `encrypt`, `creaZoneSicure` e `creaZonaPericolo` è l'unica verifica: raggi 50 e 250 accettati, 49, 251 e liste vuote rifiutati.
 
-| Chiamata | Violazione |
-| :--- | :--- |
-| `checkConnessione(List.of())` | precondizione, poi `ArrayIndexOutOfBounds` |
-| `setNumeroPostiVeicolo(-1)` | precondizione e invariante |
-| `builder().numeroPostiVeicolo(9).build()` | invariante all'uscita del costruttore |
-| `encrypt(null)` | precondizione, poi `NullPointerException` |
+## 5. Esito
 
-Problemi dello strumento: crash interno (`MISMATCHED BLOCKS`) su `String.getBytes()`, risolto con `getBytes(StandardCharsets.UTF_8)` (identico su Java 21); driver lanciato con `openjml-run` e compilato con `--release 21`.
+- **Verificate con ESC:** `Punto`, `ZonaSicura`, `NucleoFamiliareEntity`, `checkConnessione`, i 5 helper e le 7 validazioni di `Validator` (queste ultime con gli `assume`).
+- **Verificate solo con RAC:** `encrypt` (specifica di `BigInteger` incoerente), `creaZoneSicure` e `creaZonaPericolo`.
+- **Specifiche violate:** nessuna.
 
-I 420 test JUnit restano verdi.
+I 420 test JUnit passano.
 
-## Lezioni apprese
+## 6. Lezioni apprese
 
-- Una verifica fallita va interpretata: `NaN` era una specifica troppo forte, il builder un vincolo davvero aggirabile, `Pattern` un limite dello strumento.
-- Clausole come `assignable` e `non_null` pesano quanto `requires`/`ensures`: senza, il dimostratore assume il caso peggiore e produce falsi allarmi.
-- Con Lombok, per specificare un getter o un setter conviene scriverlo a mano.
-- ESC dà garanzie per tutti gli input ma si ferma sulle librerie non modellate; RAC copre quei casi solo sulle esecuzioni provate. Insieme sono complementari.
+Non tutti i fallimenti sono bug: uno era una specifica sbagliata (`NaN`), uno un difetto reale (il builder), gli altri limiti dello strumento. Molti falsi allarmi sono spariti dichiarando `assignable` e `non_null`. Gli `assume` rendono esplicite le ipotesi sulle librerie senza specifiche. Con Lombok, i metodi da specificare vanno scritti a mano. ESC e RAC si completano: l'ESC vale per tutti gli input, il RAC copre i casi che l'ESC non dimostra.

@@ -69,7 +69,9 @@ public class Validator {
       @*/
     public static boolean isNomeValid(/*@ nullable @*/ String nome) {
         if (nome == null || nome.compareTo("") == 0) return false;
-        return NOME_PERSONA_PATTERN.matcher(nome).matches();
+        boolean valido = corrisponde(NOME_PERSONA_PATTERN, nome);
+        //@ assume nome.length() > 0; // compareTo("") != 0 implica una stringa non vuota
+        return valido;
     }
 
     /*@ public normal_behavior
@@ -77,7 +79,9 @@ public class Validator {
       @*/
     public static boolean isCodiceFiscaleValid(/*@ nullable @*/ String cf) {
         if (cf == null || cf.compareTo("") == 0) return false;
-        return CODICE_FISCALE_PATTERN.matcher(cf).matches();
+        boolean valido = corrisponde(CODICE_FISCALE_PATTERN, cf);
+        //@ assume cf.length() > 0; // compareTo("") != 0 implica una stringa non vuota
+        return valido;
     }
 
     /*@ public normal_behavior
@@ -85,7 +89,9 @@ public class Validator {
       @*/
     public static boolean isSessoValid(/*@ nullable @*/ String sesso) {
         if (sesso == null || sesso.compareTo("") == 0) return false;
-        return SESSO_PATTERN.matcher(sesso).matches();
+        boolean valido = corrisponde(SESSO_PATTERN, sesso);
+        //@ assume sesso.length() > 0; // compareTo("") != 0 implica una stringa non vuota
+        return valido;
     }
 
     /*@ public normal_behavior
@@ -93,7 +99,9 @@ public class Validator {
       @*/
     public static boolean isPasswordValid(/*@ nullable @*/ String password) {
         if (password == null || password.compareTo("") == 0) return false;
-        return PASSWORD_PATTERN.matcher(password).matches();
+        boolean valido = corrisponde(PASSWORD_PATTERN, password);
+        //@ assume password.length() > 0; // compareTo("") != 0 implica una stringa non vuota
+        return valido;
     }
 
     /*@ public normal_behavior
@@ -101,14 +109,23 @@ public class Validator {
       @*/
     public static boolean isCognomeValid(/*@ nullable @*/ String cognome){
         if (cognome == null || cognome.compareTo("") == 0) return false;
-        return COGNOME_PERSONA_PATTERN.matcher(cognome).matches();
+        boolean valido = corrisponde(COGNOME_PERSONA_PATTERN, cognome);
+        //@ assume cognome.length() > 0; // compareTo("") != 0 implica una stringa non vuota
+        return valido;
     }
 
     /*@ public normal_behavior
       @   ensures data == null ==> !\result;
       @*/
     public static boolean isDataNascitaValid(/*@ nullable @*/ LocalDate data) {
-        return data != null && data.isBefore(LocalDate.now());
+        if (data == null) return false;
+        try {
+            return data.isBefore(LocalDate.now());
+        } catch (RuntimeException e) {
+            // java.time.LocalDate non ha specifiche in OpenJML: ipotesi che now() e isBefore() non lancino eccezioni
+            //@ assume false;
+            throw e;
+        }
     }
 
     /**
@@ -124,7 +141,21 @@ public class Validator {
         if (nomePiano == null || nomePiano.trim().isEmpty()) {
             return false;
         }
-        return NOME_PIANO_PATTERN.matcher(nomePiano.trim()).matches();
+        return corrisponde(NOME_PIANO_PATTERN, nomePiano.trim());
+    }
+
+    // Matcher.matches() non ha specifica in OpenJML, quindi l'ESC dovrebbe supporre che lanci qualsiasi eccezione.
+    // L'assume dichiara l'ipotesi che una regex già compilata, applicata a una stringa non nulla, non ne lanci.
+    /*@ private normal_behavior
+      @   requires pattern != null && input != null;
+      @*/
+    private static boolean corrisponde(Pattern pattern, String input) {
+        try {
+            return pattern.matcher(input).matches();
+        } catch (RuntimeException e) {
+            //@ assume false;
+            throw e;
+        }
     }
 
     public static boolean isIndirizzoValid(String via, String civico, String comune, String cap, String provincia, String regione, String paese) {

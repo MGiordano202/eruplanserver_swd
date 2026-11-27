@@ -57,11 +57,12 @@ if [[ "$MODE" == all || "$MODE" == esc ]]; then
   }
   esc validator-zone      --method 'creaZoneSicure' "$V" &
   esc validator-pericolo  --method 'creaZonaPericolo,checkConnessione' "$V" &
-  esc validator-regex     --method 'isNomeValid,isCodiceFiscaleValid,isSessoValid,isPasswordValid,isCognomeValid,isNomePianoValid,isIndirizzoValid,isCodiceFiscaleCharactersValid' "$V" &
+  esc validator-regex     --method 'corrisponde,isNomeValid,isCodiceFiscaleValid,isSessoValid,isPasswordValid,isCognomeValid,isNomePianoValid,isIndirizzoValid,isCodiceFiscaleCharactersValid' "$V" &
   esc validator-semplici  --method 'isTroppoCorto,isTroppoLungo,isCodiceFiscaleLengthValid,isAssistenzaDefinita,isMinorenneDefinito,isDataNascitaValid,isDataNascitaFormatoValid' "$V" &
   esc utility             "$PKG/Utility/Utility.java" &
   esc punto-zonasicura    "${NULLABLE[@]}" "$PKG/Entity/GPE/Punto.java" "$PKG/Entity/GPE/ZonaSicura.java" &
-  esc nucleo              "${NULLABLE[@]}" "$PKG/Entity/GNF/NucleoFamiliareEntity.java" &
+  # toString escluso: Lombok lo genera per entity e builder senza specifiche JML (fuori ambito)
+  esc nucleo              "${NULLABLE[@]}" --exclude toString "$PKG/Entity/GNF/NucleoFamiliareEntity.java" &
   wait
 
   : > "$OUT/esc.log"
